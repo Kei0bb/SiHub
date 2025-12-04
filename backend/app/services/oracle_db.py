@@ -1,0 +1,66 @@
+from sqlalchemy import create_engine, text
+from typing import List, Optional
+from datetime import date, datetime, timedelta
+from app.core.config import settings
+from app.models.sonar_schema import SemiCpHeader
+from app.models.wafer_map import WaferMapResponse
+
+class OracleDBService:
+    def __init__(self):
+        # Construct SQLAlchemy connection string
+        # Format: oracle+oracledb://user:password@dsn
+        self.database_url = f"oracle+oracledb://{settings.ORACLE_USER}:{settings.ORACLE_PASSWORD}@{settings.ORACLE_DSN}"
+        
+        # Create engine
+        self.engine = create_engine(
+            self.database_url,
+            pool_size=5,
+            max_overflow=10,
+            pool_recycle=3600
+        )
+
+    def get_cp_yield_trend(self, product_id: str, start_date: date, end_date: date) -> List[SemiCpHeader]:
+        query = text("""
+            SELECT 
+                SUBSTRATE_ID, LOT_ID, WAFER_ID, PRODUCT_ID, PROCESS, 
+                PASS_CHIP, PASS_CHIP_RATE, REGIST_DATE, REWORK_NEW, EFFECTIVE_NUM
+            FROM SEMI_CP_HEADER
+            WHERE PRODUCT_ID = :product_id
+            AND REGIST_DATE BETWEEN :start_date AND :end_date
+            ORDER BY REGIST_DATE ASC
+        """)
+        
+        data = []
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(query, {
+                    "product_id": product_id,
+                    "start_date": datetime.combine(start_date, datetime.min.time()),
+                    "end_date": datetime.combine(end_date, datetime.max.time())
+                })
+                
+                # SQLAlchemy returns Row objects which act like named tuples/dicts
+                for row in result:
+                    # Convert row to dict to pass to Pydantic
+                    # row._mapping gives a dict-like view
+                    data.append(SemiCpHeader(**row._mapping))
+                    
+        except Exception as e:
+            print(f"Oracle DB Error: {e}")
+            # In a real app, log error or raise HTTP exception
+            return []
+                
+        return data
+
+    def get_wafer_map(self, lot_id: str, wafer_id: int) -> WaferMapResponse:
+        # Placeholder for now as per plan (Mock is primary for Map)
+        return WaferMapResponse(
+            lot_id=lot_id,
+            wafer_id=wafer_id,
+            product_id="UNKNOWN",
+            x=[],
+            y=[],
+            bin=[]
+        )
+
+oracle_db_service = OracleDBService()
