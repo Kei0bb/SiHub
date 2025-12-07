@@ -30,6 +30,6 @@ def get_yield_trend(
         product_id=product_id,
         start_date=start_date,
         end_date=end_date,
-        data=data,
+        daily_trends=stats.get('daily_trends', []),
         statistics=stats
     )

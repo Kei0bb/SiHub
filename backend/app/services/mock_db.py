@@ -11,7 +11,7 @@ class MockDBService:
     def __init__(self):
         pass
 
-    def get_cp_yield_trend(self, product_id: str, start_date: date, end_date: date) -> List[SemiCpHeader]:
+    def get_cp_yield_trend(self, product_id: str, start_date: date, end_date: date) -> List[dict]:
         # Generate mock data using SEMI_CP_HEADER schema
         data = []
         current_date = start_date
@@ -38,8 +38,15 @@ class MockDBService:
                 # Calculate chip counts based on yield
                 total_chips = 1000
                 pass_chips = int(total_chips * (yield_val / 100.0))
+                fail_chips = total_chips - pass_chips
                 
-                data.append(SemiCpHeader(
+                # Distribute fail chips into bins
+                # Mock bins: 3 (Open), 7 (Short), 99 (Other)
+                open_fails = int(fail_chips * 0.45)
+                short_fails = int(fail_chips * 0.35)
+                other_fails = fail_chips - open_fails - short_fails
+                
+                header = SemiCpHeader(
                     SUBSTRATE_ID=substrate_id,
                     LOT_ID=lot_id,
                     WAFER_ID=wafer_id,
@@ -50,7 +57,17 @@ class MockDBService:
                     EFFECTIVE_NUM=total_chips,
                     REGIST_DATE=datetime.combine(current_date, datetime.min.time()),
                     REWORK_NEW=0
-                ))
+                )
+                
+                # Combine header and bin counts
+                row = header.model_dump()
+                row['bins'] = {
+                    "1_Pass": pass_chips,
+                    "3_Open": open_fails,
+                    "7_Short": short_fails,
+                    "99_Other": other_fails
+                }
+                data.append(row)
             
             current_date += timedelta(days=1)
             
@@ -94,5 +111,11 @@ class MockDBService:
             y=y_coords,
             bin=bins
         )
+
+    def get_lot_wafer_maps(self, lot_id: str) -> List[WaferMapResponse]:
+        maps = []
+        for i in range(1, 26): # 25 wafers
+            maps.append(self.get_wafer_map(lot_id, i))
+        return maps
 
 mock_db_service = MockDBService()

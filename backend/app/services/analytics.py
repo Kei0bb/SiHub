@@ -3,11 +3,12 @@ from typing import List, Dict, Any
 from app.models.sonar_schema import SemiCpHeader
 
 class AnalyticsService:
-    def calculate_yield_stats(self, data: List[SemiCpHeader]) -> Dict[str, Any]:
+    def calculate_yield_stats(self, data: List[Dict[str, Any]]) -> Dict[str, Any]:
         if not data:
             return {}
             
-        yields = [d.PASS_CHIP_RATE for d in data if d.PASS_CHIP_RATE is not None]
+        # Extract yields for overall stats
+        yields = [d['PASS_CHIP_RATE'] for d in data if d.get('PASS_CHIP_RATE') is not None]
         
         if not yields:
             return {}
@@ -22,6 +23,48 @@ class AnalyticsService:
         # Histogram
         hist, bin_edges = np.histogram(yields, bins=10, range=(0, 100))
         
+        # Daily Aggregation for Trend
+        daily_map = {}
+        for row in data:
+            date_key = row['REGIST_DATE'].date()
+            if date_key not in daily_map:
+                daily_map[date_key] = {
+                    'yields': [],
+                    'total_chips': 0,
+                    'bin_sums': {}
+                }
+            
+            daily_map[date_key]['yields'].append(row['PASS_CHIP_RATE'])
+            daily_map[date_key]['total_chips'] += row.get('EFFECTIVE_NUM', 0)
+            
+            bins = row.get('bins', {})
+            for bin_name, count in bins.items():
+                if bin_name not in daily_map[date_key]['bin_sums']:
+                    daily_map[date_key]['bin_sums'][bin_name] = 0
+                daily_map[date_key]['bin_sums'][bin_name] += count
+        
+        daily_trends = []
+        sorted_dates = sorted(daily_map.keys())
+        
+        for d in sorted_dates:
+            d_stats = daily_map[d]
+            day_mean = float(np.mean(d_stats['yields']))
+            total_chips_day = d_stats['total_chips']
+            
+            bin_percentages = {}
+            for bin_name, count in d_stats['bin_sums'].items():
+                if total_chips_day > 0:
+                    bin_percentages[bin_name] = round((count / total_chips_day) * 100.0, 2)
+                else:
+                    bin_percentages[bin_name] = 0.0
+            
+            daily_trends.append({
+                "date": d,
+                "mean_yield": round(day_mean, 2),
+                "wafer_count": len(d_stats['yields']),
+                "bin_stats": bin_percentages
+            })
+
         return {
             "average": round(mean, 2),
             "std_dev": round(std_dev, 2),
@@ -34,7 +77,8 @@ class AnalyticsService:
                 "counts": hist.tolist(),
                 "bins": [round(b, 2) for b in bin_edges.tolist()]
             },
-            "count": len(yields)
+            "count": len(yields),
+            "daily_trends": daily_trends
         }
 
 analytics_service = AnalyticsService()

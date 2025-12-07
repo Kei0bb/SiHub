@@ -4,18 +4,17 @@ import { Search, Map, Disc } from 'lucide-react'
 
 const WaferMapViewer = () => {
     const [lotId, setLotId] = useState('LOT-20231027')
-    const [waferId, setWaferId] = useState(1)
-    const [data, setData] = useState(null)
+    const [maps, setMaps] = useState([])
     const [loading, setLoading] = useState(false)
 
     const fetchData = async () => {
         setLoading(true)
         try {
-            const response = await fetch(`http://localhost:8000/api/v1/wafer/map?lot_id=${lotId}&wafer_id=${waferId}`)
+            const response = await fetch(`http://localhost:8000/api/v1/wafer/lot_maps?lot_id=${lotId}`)
             const result = await response.json()
-            setData(result)
+            setMaps(result)
         } catch (error) {
-            console.error("Error fetching wafer map:", error)
+            console.error("Error fetching wafer maps:", error)
         } finally {
             setLoading(false)
         }
@@ -43,88 +42,87 @@ const WaferMapViewer = () => {
                         style={{ width: '150px' }}
                     />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Wafer #</span>
-                    <input
-                        type="number"
-                        className="filter-input"
-                        value={waferId}
-                        onChange={(e) => setWaferId(parseInt(e.target.value))}
-                        placeholder="Wafer ID"
-                        style={{ width: '80px' }}
-                    />
-                </div>
-                <button className="btn-primary" onClick={handleApply}>Load Map</button>
+                <button className="btn-primary" onClick={handleApply}>Load Lot Maps</button>
             </div>
 
-            <div className="card" style={{ height: '600px' }}>
+            <div className="card" style={{ height: 'auto', minHeight: '600px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <h3>Wafer Map</h3>
-                    {data && (
+                    <h3>Lot Wafer Maps (25 Wafers)</h3>
+                    {maps.length > 0 && (
                         <div style={{ display: 'flex', gap: '15px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                                 <div style={{ width: '12px', height: '12px', background: '#10b981', borderRadius: '2px' }}></div>
-                                <small>Pass (Bin 1)</small>
+                                <small>Pass</small>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                                 <div style={{ width: '12px', height: '12px', background: '#ef4444', borderRadius: '2px' }}></div>
-                                <small>Fail (Bin 99)</small>
+                                <small>Fail</small>
                             </div>
                         </div>
                     )}
                 </div>
 
                 {loading ? (
-                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>Loading map...</div>
-                ) : data ? (
-                    <div className="chart-container" style={{ height: '500px' }}>
-                        <Plot
-                            data={[
-                                {
-                                    x: data.x,
-                                    y: data.y,
-                                    mode: 'markers',
-                                    type: 'scattergl',
-                                    marker: {
-                                        size: 8,
-                                        symbol: 'square',
-                                        color: data.bin.map(b => b === 1 ? '#10b981' : '#ef4444'),
-                                        line: {
-                                            width: 0.5,
-                                            color: 'rgba(0,0,0,0.1)'
-                                        }
-                                    },
-                                    text: data.bin.map((b, i) => `X: ${data.x[i]}, Y: ${data.y[i]}<br>Bin: ${b}`),
-                                    hoverinfo: 'text',
-                                    name: 'Die'
-                                }
-                            ]}
-                            layout={{
-                                autosize: true,
-                                margin: { l: 20, r: 20, t: 20, b: 20 },
-                                xaxis: {
-                                    showgrid: false,
-                                    zeroline: false,
-                                    showticklabels: false,
-                                    scaleanchor: "y",
-                                    scaleratio: 1
-                                },
-                                yaxis: {
-                                    showgrid: false,
-                                    zeroline: false,
-                                    showticklabels: false
-                                },
-                                paper_bgcolor: 'rgba(0,0,0,0)',
-                                plot_bgcolor: 'rgba(0,0,0,0)',
-                                showlegend: false
-                            }}
-                            useResizeHandler={true}
-                            style={{ width: "100%", height: "100%" }}
-                            config={{ displayModeBar: true }}
-                        />
+                    <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>Loading map grid...</div>
+                ) : maps.length > 0 ? (
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(5, 1fr)',
+                        gap: '10px',
+                        padding: '10px'
+                    }}>
+                        {maps.map((mapData, index) => (
+                            <div key={index} style={{ border: '1px solid #334155', borderRadius: '4px', overflow: 'hidden', background: 'rgba(30, 41, 59, 0.5)' }}>
+                                <div style={{ textAlign: 'center', fontSize: '0.8rem', padding: '5px', color: 'var(--text-muted)', borderBottom: '1px solid #334155' }}>
+                                    Wafer #{mapData.wafer_id}
+                                </div>
+                                <div style={{ height: '150px' }}>
+                                    <Plot
+                                        data={[
+                                            {
+                                                x: mapData.x,
+                                                y: mapData.y,
+                                                mode: 'markers',
+                                                type: 'scatter', // SVG for better performance heavily on DOM but safer for context limits
+                                                marker: {
+                                                    size: 3,
+                                                    symbol: 'square',
+                                                    color: mapData.bin.map(b => b === 1 ? '#10b981' : '#ef4444')
+                                                },
+                                                hoverinfo: 'none' // Disable hover for grid view performance
+                                            }
+                                        ]}
+                                        layout={{
+                                            autosize: true,
+                                            margin: { l: 0, r: 0, t: 0, b: 0 },
+                                            xaxis: {
+                                                showgrid: false,
+                                                zeroline: false,
+                                                showticklabels: false,
+                                                range: [-16, 16] // Fixed range to keep scale consistent
+                                            },
+                                            yaxis: {
+                                                showgrid: false,
+                                                zeroline: false,
+                                                showticklabels: false,
+                                                scaleanchor: "x",
+                                                scaleratio: 1,
+                                                range: [-16, 16]
+                                            },
+                                            paper_bgcolor: 'rgba(0,0,0,0)',
+                                            plot_bgcolor: 'rgba(0,0,0,0)',
+                                            showlegend: false
+                                        }}
+                                        useResizeHandler={true}
+                                        style={{ width: "100%", height: "100%" }}
+                                        config={{ displayModeBar: false, staticPlot: true }}
+                                    />
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 ) : (
-                    <div>No data available</div>
+                    <div style={{ padding: '20px', textAlign: 'center' }}>No maps available</div>
                 )}
             </div>
         </div>

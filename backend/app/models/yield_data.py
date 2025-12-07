@@ -10,9 +10,15 @@ class YieldDataPoint(BaseModel):
     yield_value: float
     wafer_count: int
 
+class DailyYieldStats(BaseModel):
+    date: date
+    mean_yield: float
+    wafer_count: int
+    bin_stats: dict[str, float]  # "Bincode_Binname": fail_rate_percentage
+
 class YieldTrendResponse(BaseModel):
     product_id: str
     start_date: date
     end_date: date
-    data: List[YieldDataPoint]
+    daily_trends: List[DailyYieldStats]
     statistics: dict

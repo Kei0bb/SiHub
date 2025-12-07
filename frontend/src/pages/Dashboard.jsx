@@ -99,35 +99,66 @@ const Dashboard = () => {
                     <h3 style={{ marginBottom: '20px' }}>Yield Trend</h3>
                     {loading ? (
                         <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>Loading data...</div>
-                    ) : data ? (
+                    ) : data && data.daily_trends ? (
                         <div className="chart-container">
                             <Plot
                                 data={[
+                                    // Yield Line (Left Axis)
                                     {
-                                        x: data.data.map(d => d.REGIST_DATE),
-                                        y: data.data.map(d => d.PASS_CHIP_RATE),
+                                        x: data.daily_trends.map(d => d.date),
+                                        y: data.daily_trends.map(d => d.mean_yield),
                                         type: 'scatter',
                                         mode: 'lines+markers',
                                         marker: { color: '#3b82f6', size: 6 },
-                                        line: { width: 2 },
-                                        name: 'Yield'
+                                        line: { width: 3 },
+                                        name: 'Yield (%)',
+                                        yaxis: 'y1'
                                     },
+                                    // Target Line
                                     {
-                                        x: [data.data[0]?.REGIST_DATE, data.data[data.data.length - 1]?.REGIST_DATE],
+                                        x: [data.daily_trends[0]?.date, data.daily_trends[data.daily_trends.length - 1]?.date],
                                         y: [data.statistics.target, data.statistics.target],
                                         type: 'scatter',
                                         mode: 'lines',
                                         line: { color: '#10b981', dash: 'dash', width: 2 },
-                                        name: 'Target'
-                                    }
+                                        name: 'Target',
+                                        hoverinfo: 'skip',
+                                        yaxis: 'y1'
+                                    },
+                                    // Dynamic Fail Bin Bars (Right Axis)
+                                    ...(() => {
+                                        if (data.daily_trends.length === 0) return [];
+                                        // content of bin_stats is like {"1_Pass": 95, "3_Open": 2...}
+                                        // Collect all unique bin keys from all days to be safe, excluding Pass
+                                        const allBins = new Set();
+                                        data.daily_trends.forEach(d => {
+                                            if (d.bin_stats) {
+                                                Object.keys(d.bin_stats).forEach(k => {
+                                                    if (!k.includes('Pass') && !k.startsWith('1_')) {
+                                                        allBins.add(k);
+                                                    }
+                                                });
+                                            }
+                                        });
+
+                                        const colors = ['#ef4444', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1'];
+                                        return Array.from(allBins).map((binName, index) => ({
+                                            x: data.daily_trends.map(d => d.date),
+                                            y: data.daily_trends.map(d => d.bin_stats[binName] || 0),
+                                            type: 'bar',
+                                            name: binName,
+                                            marker: { color: colors[index % colors.length] },
+                                            yaxis: 'y2',
+                                            opacity: 0.7
+                                        }));
+                                    })()
                                 ]}
                                 layout={{
                                     autosize: true,
-                                    margin: { l: 50, r: 20, t: 20, b: 50 },
+                                    margin: { l: 50, r: 50, t: 20, b: 50 },
                                     xaxis: {
                                         title: 'Date',
                                         gridcolor: '#334155',
-                                        zerolinecolor: '#334155',
                                         tickfont: { color: '#94a3b8' },
                                         titlefont: { color: '#94a3b8' }
                                     },
@@ -136,9 +167,19 @@ const Dashboard = () => {
                                         range: [80, 100],
                                         gridcolor: '#334155',
                                         zerolinecolor: '#334155',
-                                        tickfont: { color: '#94a3b8' },
-                                        titlefont: { color: '#94a3b8' }
+                                        tickfont: { color: '#3b82f6' },
+                                        titlefont: { color: '#3b82f6' }
                                     },
+                                    yaxis2: {
+                                        title: 'Fail Rate (%)',
+                                        titlefont: { color: '#ef4444' },
+                                        tickfont: { color: '#ef4444' },
+                                        overlaying: 'y',
+                                        side: 'right',
+                                        range: [0, 20], // Adjusted for visibility of fail rates
+                                        showgrid: false
+                                    },
+                                    barmode: 'stack',
                                     paper_bgcolor: 'rgba(0,0,0,0)',
                                     plot_bgcolor: 'rgba(0,0,0,0)',
                                     showlegend: true,
