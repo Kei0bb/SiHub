@@ -31,11 +31,14 @@ class AnalyticsService:
                 daily_map[date_key] = {
                     'yields': [],
                     'total_chips': 0,
-                    'bin_sums': {}
+                    'bin_sums': {},
+                    'lot_ids': set()
                 }
             
             daily_map[date_key]['yields'].append(row['PASS_CHIP_RATE'])
             daily_map[date_key]['total_chips'] += row.get('EFFECTIVE_NUM', 0)
+            if 'LOT_ID' in row:
+                daily_map[date_key]['lot_ids'].add(row['LOT_ID'])
             
             bins = row.get('bins', {})
             for bin_name, count in bins.items():
@@ -51,6 +54,11 @@ class AnalyticsService:
             day_mean = float(np.mean(d_stats['yields']))
             total_chips_day = d_stats['total_chips']
             
+            # Use the first lot found for the day as the representative lot ID
+            # In a real scenario with multiple lots per day, we might need a different strategy
+            # or return a list. For now, we take one to satisfy the requirement.
+            lot_id = list(d_stats['lot_ids'])[0] if d_stats['lot_ids'] else None
+            
             bin_percentages = {}
             for bin_name, count in d_stats['bin_sums'].items():
                 if total_chips_day > 0:
@@ -60,6 +68,7 @@ class AnalyticsService:
             
             daily_trends.append({
                 "date": d,
+                "lot_id": lot_id,
                 "mean_yield": round(day_mean, 2),
                 "wafer_count": len(d_stats['yields']),
                 "bin_stats": bin_percentages

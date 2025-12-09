@@ -12,6 +12,7 @@ class YieldDataPoint(BaseModel):
 
 class DailyYieldStats(BaseModel):
     date: date
+    lot_id: Optional[str] = None
     mean_yield: float
     wafer_count: int
     bin_stats: dict[str, float]  # "Bincode_Binname": fail_rate_percentage
