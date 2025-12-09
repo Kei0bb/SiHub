@@ -26,6 +26,11 @@ def get_yield_trend(
     # Calculate statistics using Analytics Service
     stats = analytics_service.calculate_yield_stats(data)
     
+    # Inject dynamic target from settings
+    from app.services.mock_db import mock_settings_service
+    target = mock_settings_service.get_target(product_id, start_date.strftime("%Y-%m") if start_date else None)
+    stats['target'] = target
+
     return YieldTrendResponse(
         product_id=product_id,
         start_date=start_date,

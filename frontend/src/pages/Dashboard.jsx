@@ -3,11 +3,30 @@ import Plot from 'react-plotly.js'
 import { Search, TrendingUp, TrendingDown, Activity, Target, Layers } from 'lucide-react'
 
 const Dashboard = () => {
-    const [productId, setProductId] = useState('PRODUCT-A')
+    const [productId, setProductId] = useState('')
+    const [products, setProducts] = useState([])
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(false)
 
+    useEffect(() => {
+        const init = async () => {
+            try {
+                const res = await fetch('http://localhost:8000/api/v1/settings/products')
+                const allProducts = await res.json()
+                const activeProducts = allProducts.filter(p => p.active)
+                setProducts(activeProducts)
+                if (activeProducts.length > 0) {
+                    setProductId(activeProducts[0].id)
+                }
+            } catch (err) {
+                console.error("Failed to load products", err)
+            }
+        }
+        init()
+    }, [])
+
     const fetchData = async () => {
+        if (!productId) return
         setLoading(true)
         try {
             const response = await fetch(`http://localhost:8000/api/v1/yield/trend?product_id=${productId}`)
@@ -21,27 +40,28 @@ const Dashboard = () => {
     }
 
     useEffect(() => {
-        fetchData()
-    }, []) // Initial load
-
-    const handleApply = () => {
-        fetchData()
-    }
+        if (productId) {
+            fetchData()
+        }
+    }, [productId])
 
     return (
         <div>
             <div className="filter-bar">
                 <Search size={20} color="var(--text-muted)" />
-                <input
-                    type="text"
+                <select
                     className="filter-input"
                     value={productId}
                     onChange={(e) => setProductId(e.target.value)}
-                    placeholder="Search Product ID..."
-                    style={{ border: 'none', background: 'transparent', padding: '0', fontSize: '1rem', width: '300px' }}
-                />
+                    style={{ border: 'none', background: 'transparent', fontSize: '1rem', width: '300px', cursor: 'pointer' }}
+                >
+                    {products.length === 0 && <option value="">Loading products...</option>}
+                    {products.map(p => (
+                        <option key={p.id} value={p.id}>{p.name} ({p.id})</option>
+                    ))}
+                </select>
                 <div style={{ marginLeft: 'auto' }}>
-                    <button className="btn-primary" onClick={handleApply}>Update View</button>
+                    <button className="btn-primary" onClick={fetchData}>Refresh</button>
                 </div>
             </div>
 

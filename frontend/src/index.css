@@ -10,48 +10,43 @@
   --radius-md: 12px;
   --radius-lg: 16px;
 
-  /* Default Theme (Dark) */
-  --bg-color: #0f172a;
-  --sidebar-bg: #1e293b;
-  --card-bg: #1e293b;
-  --text-color: #f1f5f9;
-  --text-muted: #94a3b8;
-  --primary-color: #3b82f6;
-  --primary-hover: #2563eb;
-  --border-color: #334155;
-  --success-color: #10b981;
-  --warning-color: #f59e0b;
-  --danger-color: #ef4444;
-
-  --glass-bg: rgba(30, 41, 59, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-
-  --nav-hover-bg: rgba(255, 255, 255, 0.05);
-
-  --main-bg-gradient: radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%);
-}
-
-[data-theme='light'] {
-  --bg-color: #f8fafc;
-  --sidebar-bg: #ffffff;
+  /* Warm Light Theme (Default & Fixed) */
+  --bg-color: #fdfbf7;
+  /* Warm beige background */
+  --sidebar-bg: #f5f2eb;
+  /* Slightly darker warm beige */
   --card-bg: #ffffff;
-  --text-color: #0f172a;
-  --text-muted: #64748b;
-  --primary-color: #3b82f6;
-  --primary-hover: #2563eb;
-  --border-color: #e2e8f0;
-  --success-color: #10b981;
-  --warning-color: #f59e0b;
-  --danger-color: #ef4444;
+  --text-color: #1c1917;
+  /* Warm dark gray */
+  --text-muted: #78716c;
+  /* Warm gray */
+  --primary-color: #d97706;
+  /* Amber/Orange tone often used in modern "warm" UIs, but keeping user's blue preference or switching? 
+                             User asked for "easy to read color theme like screenshot". 
+                             Screenshot has Anthropic style: serif fonts, clean, warm background. 
+                             Let's stick to a clean, high-contrast dark text on warm bg. 
+                             I will keep a professional accent color. */
+  --primary-color: #ea580c;
+  /* Burnt Orange/Terra cotta for that "Anthropic-like" feel */
+  --primary-hover: #c2410c;
 
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(0, 0, 0, 0.1);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+  /* Retaining semantic colors but softening them if needed */
+  --border-color: #e7e5e4;
+  --success-color: #059669;
+  /* Emerald */
+  --warning-color: #d97706;
+  /* Amber */
+  --danger-color: #dc2626;
+  /* Red */
 
-  --nav-hover-bg: rgba(0, 0, 0, 0.05);
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(231, 229, 228, 0.4);
+  --glass-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
 
-  --main-bg-gradient: radial-gradient(circle at top right, #ffffff 0%, #f1f5f9 100%);
+  --nav-hover-bg: rgba(0, 0, 0, 0.04);
+
+  /* Subtle gradient for main background to give depth */
+  --main-bg-gradient: linear-gradient(to bottom right, #fdfbf7 0%, #f5f5f4 100%);
 }
 
 body {

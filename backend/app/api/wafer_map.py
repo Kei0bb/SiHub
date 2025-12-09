@@ -13,6 +13,13 @@ def get_wafer_map(
 ):
     return db_service.get_wafer_map(lot_id, wafer_id)
 
+@router.get("/lots", response_model=List[str])
+def get_lots(
+    product_id: str,
+    db_service = Depends(get_db_service)
+):
+    return db_service.get_lots(product_id)
+
 @router.get("/lot_maps", response_model=List[WaferMapResponse])
 def get_lot_wafer_maps(
     lot_id: str,

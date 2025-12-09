@@ -7,6 +7,46 @@ from app.models.sonar_schema import SemiCpHeader
 from app.models.wafer_map import WaferMapResponse
 import math
 
+class MockSettingsService:
+    def __init__(self):
+        # Mock In-Memory Persistence
+        self.products = [
+            {"id": "PRODUCT-A", "name": "Product A", "active": True},
+            {"id": "PRODUCT-B", "name": "Product B", "active": False},
+            {"id": "PRODUCT-C", "name": "Product C", "active": False},
+        ]
+        self.yield_targets = {
+            # Format: 'YYYY-MM': { 'PRODUCT-ID': target_val }
+            "2023-10": {"PRODUCT-A": 98.0, "PRODUCT-B": 95.0},
+            "2023-11": {"PRODUCT-A": 98.5, "PRODUCT-B": 96.0},
+            "2023-12": {"PRODUCT-A": 99.0, "PRODUCT-B": 97.0},
+        }
+
+    def get_products(self):
+        return self.products
+
+    def toggle_product(self, product_id: str, active: bool):
+        for p in self.products:
+            if p["id"] == product_id:
+                p["active"] = active
+                return p
+        return None
+
+    def get_target(self, product_id: str, month: str = None) -> float:
+        if not month:
+            month = datetime.now().strftime("%Y-%m")
+        
+        month_targets = self.yield_targets.get(month, {})
+        return month_targets.get(product_id, 95.0) # Default 95.0
+
+    def set_target(self, product_id: str, month: str, target: float):
+        if month not in self.yield_targets:
+            self.yield_targets[month] = {}
+        self.yield_targets[month][product_id] = target
+        return self.yield_targets[month]
+
+mock_settings_service = MockSettingsService()
+
 class MockDBService:
     def __init__(self):
         pass
@@ -18,6 +58,8 @@ class MockDBService:
         
         # Base yield depends on product_id hash
         base_yield = 90.0 + (hash(product_id) % 10) / 2.0
+        
+        # Get target from settings for simplistic comparison in trend (optional, handled in frontend mostly)
         
         while current_date <= end_date:
             # Generate 1-5 wafers per day (simulating a lot or partial lot)
@@ -73,8 +115,22 @@ class MockDBService:
             
         return data
 
+    def get_lots(self, product_id: str) -> List[str]:
+        # Generate deterministic lots for a product
+        seed = int(hash(product_id)) % 1000
+        random.seed(seed)
+        lots = []
+        for i in range(5):
+            date_part = (datetime.now() - timedelta(days=i*5)).strftime('%Y%m%d')
+            lots.append(f"LOT-{date_part}-{product_id[-1]}")
+        return lots
+
     def get_wafer_map(self, lot_id: str, wafer_id: int) -> WaferMapResponse:
         # Generate synthetic wafer map
+        # Deterministic generation based on lot_id + wafer_id
+        seed = hash(f"{lot_id}-{wafer_id}")
+        random.seed(seed)
+        
         # Assume 300mm wafer, die size ~10mm -> ~30x30 grid
         radius = 15
         x_coords = []
@@ -87,21 +143,34 @@ class MockDBService:
             for y in range(-radius, radius + 1):
                 # Check if inside wafer circle
                 if x*x + y*y <= radius*radius:
-                    x_coords.append(x)
-                    y_coords.append(y)
                     
                     # Generate bin
-                    # 90% Pass (Bin 1), 10% Fail (Bin 99)
-                    # Add some edge failure pattern
                     dist = math.sqrt(x*x + y*y)
                     prob_fail = 0.05
-                    if dist > radius - 2: # Edge
-                        prob_fail = 0.3
-                        
-                    if random.random() < prob_fail:
-                        bins.append(99) # Fail
+                    
+                    # Edge failure signature -> Soft Bin 3 (Open)
+                    # Use deterministic random checks
+                    is_edge_fail = False
+                    if dist > radius - 2: 
+                        if random.random() < 0.4:
+                            is_edge_fail = True
+
+                    if is_edge_fail:
+                        x_coords.append(x)
+                        y_coords.append(y)
+                        bins.append(3) # Open
+                    elif random.random() < prob_fail:
+                        # Random defects -> Mix of 7 (Short) and 99 (Other)
+                        if random.random() < 0.6:
+                            bins.append(7) # Short
+                        else:
+                            bins.append(99) # Other
+                        x_coords.append(x)
+                        y_coords.append(y)
                     else:
                         bins.append(1) # Pass
+                        x_coords.append(x)
+                        y_coords.append(y)
                         
         return WaferMapResponse(
             lot_id=lot_id,

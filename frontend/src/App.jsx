@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './index.css'
+import SettingsPage from './pages/Settings'
 import Dashboard from './pages/Dashboard'
 import WaferMapViewer from './pages/WaferMapViewer'
 import { LayoutDashboard, BarChart2, FileText, Settings, User, Bell, Map } from 'lucide-react'
@@ -40,7 +41,11 @@ function App() {
               <FileText size={20} />
               Reports
             </div>
-            <div className="nav-item" style={{ marginTop: 'auto' }}>
+            <div
+              className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
+              onClick={() => setActiveTab('settings')}
+              style={{ marginTop: 'auto' }}
+            >
               <Settings size={20} />
               Settings
             </div>
@@ -49,7 +54,7 @@ function App() {
 
         <main className="main-content">
           <header className="header">
-            <h3>{activeTab === 'dashboard' ? 'Yield Overview' : 'Wafer Map Viewer'}</h3>
+            <h3>{activeTab === 'dashboard' ? 'Yield Overview' : activeTab === 'wafermap' ? 'Wafer Map Viewer' : 'Settings'}</h3>
             <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
               <ThemeToggle />
               <Bell size={20} color="var(--text-muted)" />
@@ -68,6 +73,7 @@ function App() {
           <div className="dashboard-content">
             {activeTab === 'dashboard' && <Dashboard />}
             {activeTab === 'wafermap' && <WaferMapViewer />}
+            {activeTab === 'settings' && <SettingsPage />}
           </div>
         </main>
       </div>
