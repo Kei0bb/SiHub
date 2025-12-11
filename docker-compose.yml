@@ -1,0 +1,23 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: sihub-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ORACLE_USER=${ORACLE_USER:-user}
+      - ORACLE_PASSWORD=${ORACLE_PASSWORD:-password}
+      - ORACLE_DSN=${ORACLE_DSN:-localhost:1521/xe}
+      - USE_MOCK_DB=${USE_MOCK_DB:-True}
+    volumes:
+      - ./backend/app:/app/app:ro
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: sihub-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
