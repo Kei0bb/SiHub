@@ -1,9 +1,10 @@
-FROM python:3.13
+# Windows Server Core image for Python
+FROM python:3.13-windowsservercore
 
 WORKDIR /app
 
-# Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+# Install uv (using pip as curl might be tricky on minimal windows images)
+RUN pip install uv
 
 # Copy dependency definitions
 COPY pyproject.toml uv.lock ./
@@ -18,6 +19,7 @@ COPY . .
 RUN uv sync --frozen
 
 # Place the virtualenv in the path
-ENV PATH="/app/.venv/bin:$PATH"
+# In Windows, scripts are in Scripts not bin
+ENV PATH="C:\\app\\.venv\\Scripts;%PATH%"
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

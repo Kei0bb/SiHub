@@ -132,6 +132,7 @@ The application supports a `.env` file in the `backend` directory.
 - Python 3.12以上
 - uv (Pythonパッケージマネージャー)
 - Docker & Docker Compose (コンテナデプロイ用)
+  - **Windows**: [Docker Desktop for Windows](https://docs.docker.com/desktop/install/windows-install/) をインストールしてください。
 
 ### デプロイ（推奨）
 本プロジェクトはDockerとNginxを使用してコンテナ化されています。
@@ -140,6 +141,18 @@ The application supports a `.env` file in the `backend` directory.
 # Docker Composeでビルドして起動
 docker compose up --build -d
 ```
+※ Windows (PowerShell/Command Prompt) でも同様のコマンドで動作します。
+
+### Windows Native Containers (WSL2/Docker Desktopなし)
+Windows Docker Engine (Windows Containerモード) を使用する場合は、以下の専用設定を使用してください。
+
+```bash
+# Windows Native用設定でビルドして起動
+docker compose -f docker-compose.windows.yml up --build
+```
+**注意**: Windows Server Core/Nano Serverベースのイメージを使用するため、初回ビルド時は大容量のイメージダウンロードが発生します。
+
+
 - **フロントエンド**: [http://localhost](http://localhost)
 - **APIドキュメント**: [http://localhost/docs](http://localhost/docs)
 
