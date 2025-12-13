@@ -3,8 +3,13 @@ FROM python:3.13-windowsservercore
 
 WORKDIR /app
 
-# Install uv (using pip as curl might be tricky on minimal windows images)
-RUN pip install uv
+# Install uv (download binary directly to avoid pip)
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+RUN Invoke-WebRequest -Uri https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip -OutFile uv.zip; \
+    Expand-Archive uv.zip -DestinationPath C:\uv_temp; \
+    Move-Item C:\uv_temp\uv-x86_64-pc-windows-msvc\uv.exe C:\Windows\System32\uv.exe; \
+    Remove-Item uv.zip -Force; \
+    Remove-Item C:\uv_temp -Recurse -Force
 
 # Copy dependency definitions
 COPY pyproject.toml uv.lock ./
