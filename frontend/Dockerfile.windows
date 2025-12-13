@@ -2,7 +2,7 @@
 FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS build
 
 # Install Node.js
-SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+SHELL ["C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "-Command", "$ErrorActionPreference = 'Stop';"]
 ADD https://nodejs.org/dist/v20.18.1/node-v20.18.1-win-x64.zip node.zip
 RUN Expand-Archive node.zip -DestinationPath C:\; \
     Rename-Item C:\node-v20.18.1-win-x64 C:\nodejs; \
