@@ -5,7 +5,9 @@ WORKDIR /app
 
 # Install uv (download binary directly to avoid pip)
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue'; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; [System.Net.ServicePointManager]::ServerCertificateValidationCallback = {$true};"]
-RUN Invoke-WebRequest -Uri https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip -OutFile uv.zip; \
+RUN [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; \
+    [System.Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}; \
+    Invoke-WebRequest -Uri https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip -OutFile uv.zip; \
     Expand-Archive uv.zip -DestinationPath C:\uv_temp; \
     Move-Item C:\uv_temp\uv-x86_64-pc-windows-msvc\uv.exe C:\Windows\System32\uv.exe; \
     Remove-Item uv.zip -Force; \
