@@ -9,7 +9,9 @@ ADD https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-window
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 RUN Expand-Archive uv.zip -DestinationPath C:\uv_temp; \
-    Move-Item C:\uv_temp\uv-x86_64-pc-windows-msvc\uv.exe C:\Windows\System32\uv.exe; \
+    $uvExe = Get-ChildItem -Path C:\uv_temp -Recurse -Filter uv.exe | Select-Object -First 1; \
+    if (-not $uvExe) { Write-Error 'uv.exe not found'; exit 1 }; \
+    Move-Item $uvExe.FullName C:\Windows\System32\uv.exe; \
     Remove-Item uv.zip -Force; \
     Remove-Item C:\uv_temp -Recurse -Force
 
