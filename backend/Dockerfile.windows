@@ -4,11 +4,11 @@ FROM python:3.13-windowsservercore
 WORKDIR /app
 
 # Install uv (download binary directly to avoid pip)
-SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue'; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; [System.Net.ServicePointManager]::ServerCertificateValidationCallback = {$true};"]
-RUN [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; \
-    [System.Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}; \
-    Invoke-WebRequest -Uri https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip -OutFile uv.zip; \
-    Expand-Archive uv.zip -DestinationPath C:\uv_temp; \
+# Install uv (download binary via host using ADD to bypass container network/SSL issues)
+ADD https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip uv.zip
+
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+RUN Expand-Archive uv.zip -DestinationPath C:\uv_temp; \
     Move-Item C:\uv_temp\uv-x86_64-pc-windows-msvc\uv.exe C:\Windows\System32\uv.exe; \
     Remove-Item uv.zip -Force; \
     Remove-Item C:\uv_temp -Recurse -Force
