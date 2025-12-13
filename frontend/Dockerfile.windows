@@ -1,7 +1,16 @@
 # Build Stage
-FROM node:20-nanoserver AS build
+FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS build
+
+# Install Node.js
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+ADD https://nodejs.org/dist/v20.18.1/node-v20.18.1-win-x64.zip node.zip
+RUN Expand-Archive node.zip -DestinationPath C:\; \
+    Rename-Item C:\node-v20.18.1-win-x64 C:\nodejs; \
+    Remove-Item node.zip -Force
 
 WORKDIR /app
+# Add Node to PATH for the build steps
+ENV PATH="C:\\nodejs;%PATH%"
 
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -9,12 +18,16 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Production Stage - Nanoserver + serve
-FROM node:20-nanoserver
+# Production Stage
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+
+# Install Node.js (Copy from build stage to save download time/size)
+COPY --from=build /nodejs /nodejs
+ENV PATH="C:\\nodejs;%PATH%"
 
 WORKDIR /app
 
-# Install 'serve' globally to serve static files
+# Install 'serve' globally
 RUN npm install -g serve
 
 # Copy built assets
