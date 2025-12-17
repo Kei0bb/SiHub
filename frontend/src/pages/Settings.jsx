@@ -26,7 +26,7 @@ const Settings = () => {
 
     const fetchProducts = async () => {
         try {
-            const res = await fetch('http://localhost:8000/api/v1/settings/products')
+            const res = await fetch('/api/v1/settings/products')
             const data = await res.json()
             setProducts(data)
         } catch (error) {
@@ -41,7 +41,7 @@ const Settings = () => {
             for (const product of products.filter(p => p.active)) {
                 for (let month = 1; month <= 12; month++) {
                     const monthStr = `${selectedYear}-${String(month).padStart(2, '0')}`
-                    const res = await fetch(`http://localhost:8000/api/v1/settings/targets?product_id=${product.id}&month=${monthStr}`)
+                    const res = await fetch(`/api/v1/settings/targets?product_id=${product.id}&month=${monthStr}`)
                     const data = await res.json()
                     newTargets[`${product.id}-${monthStr}`] = data.target
                 }
@@ -56,7 +56,7 @@ const Settings = () => {
 
     const handleToggleProduct = async (productId, currentStatus) => {
         try {
-            await fetch(`http://localhost:8000/api/v1/settings/products/${productId}`, {
+            await fetch(`/api/v1/settings/products/${productId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ active: !currentStatus })
@@ -80,7 +80,7 @@ const Settings = () => {
         const monthStr = `${selectedYear}-${String(month).padStart(2, '0')}`
         const targetVal = targets[`${productId}-${monthStr}`]
         try {
-            await fetch(`http://localhost:8000/api/v1/settings/targets`, {
+            await fetch(`/api/v1/settings/targets`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -102,7 +102,7 @@ const Settings = () => {
                 const monthStr = `${selectedYear}-${String(month).padStart(2, '0')}`
                 const targetVal = targets[`${productId}-${monthStr}`]
                 if (targetVal !== undefined) {
-                    await fetch(`http://localhost:8000/api/v1/settings/targets`, {
+                    await fetch(`/api/v1/settings/targets`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

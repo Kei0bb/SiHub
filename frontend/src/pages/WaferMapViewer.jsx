@@ -35,7 +35,7 @@ const WaferMapViewer = () => {
         }
         const fetchLots = async () => {
             try {
-                const res = await fetch(`http://localhost:8000/api/v1/wafer/lots?product_id=${selectedProduct}`)
+                const res = await fetch(`/api/v1/wafer/lots?product_id=${selectedProduct}`)
                 const data = await res.json()
                 setLots(data)
                 // Auto-select first lot

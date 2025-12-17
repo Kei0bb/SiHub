@@ -12,7 +12,7 @@ const Dashboard = () => {
     useEffect(() => {
         const init = async () => {
             try {
-                const res = await fetch('http://localhost:8000/api/v1/settings/products')
+                const res = await fetch(`http://${window.location.hostname}:8000/api/v1/settings/products`)
                 const allProducts = await res.json()
                 const activeProducts = allProducts.filter(p => p.active)
                 setProducts(activeProducts)
@@ -30,7 +30,7 @@ const Dashboard = () => {
         if (!productId) return
         setLoading(true)
         try {
-            const response = await fetch(`http://localhost:8000/api/v1/yield/trend?product_id=${productId}`)
+            const response = await fetch(`/api/v1/yield/trend?product_id=${productId}`)
             const result = await response.json()
             setData(result)
         } catch (error) {
