@@ -1,0 +1,43 @@
+{% for lot_id, maps in wafer_maps.items() %}
+<div class="card" style="margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+        <h3>{{ lot_id }} ({{ maps|length }} Wafers)</h3>
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #10b981;"></div>
+                <small>Pass</small>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ef4444;"></div>
+                <small>Bin 3 (Open)</small>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f59e0b;"></div>
+                <small>Bin 7 (Short)</small>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #8b5cf6;"></div>
+                <small>Bin 99 (Other)</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="wafer-grid">
+        {% for wafer in maps %}
+        <div class="wafer-thumbnail" onclick="showWaferDetail('{{ wafer.wafer_id }}', '{{ lot_id }}')">
+            <div
+                style="text-align: center; font-size: 0.7rem; padding: 2px 0; color: var(--text-muted); border-bottom: 1px solid var(--border-color);">
+                Wafer #{{ wafer.wafer_id }}
+            </div>
+            <div style="height: 100px; display: flex; align-items: center; justify-content: center;">
+                {{ wafer.svg | safe }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="card" style="padding: 40px; text-align: center; color: var(--text-muted);">
+    Select lots above to view wafer maps
+</div>
+{% endfor %}

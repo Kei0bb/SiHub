@@ -1,0 +1,25 @@
+<div id="product-list" style="display: flex; flex-direction: column; gap: 10px;">
+    {% for product in products %}
+    <div
+        style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+        <div>
+            <div style="font-weight: 600;">{{ product.name }}</div>
+            <small style="color: var(--text-muted);">ID: {{ product.id }}</small>
+        </div>
+        <button
+            style="background: transparent; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: {{ 'var(--success-color)' if product.active else 'var(--text-muted)' }};"
+            hx-post="/partials/toggle-product" hx-vals='{"product_id": "{{ product.id }}", "active": "{{ ' false' if
+            product.active else 'true' }}"}' hx-target="#product-list" hx-swap="outerHTML">
+            {{ 'Active' if product.active else 'Inactive' }}
+            <i data-lucide="{{ 'toggle-right' if product.active else 'toggle-left' }}"
+                style="width: 24px; height: 24px;"></i>
+        </button>
+    </div>
+    {% endfor %}
+</div>
+<script>
+    // Re-initialize Lucide icons after HTMX swap
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+</script>

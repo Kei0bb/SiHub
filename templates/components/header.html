@@ -1,0 +1,39 @@
+<header class="header">
+    <h3>{% block page_title %}{{ page_title|default('Dashboard') }}{% endblock %}</h3>
+    <div style="display: flex; gap: 20px; align-items: center;">
+        <button onclick="toggleTheme()"
+            style="background: transparent; border: none; cursor: pointer; padding: 8px; border-radius: 6px;">
+            <i data-lucide="sun" class="theme-icon-light" style="display: none;"></i>
+            <i data-lucide="moon" class="theme-icon-dark"></i>
+        </button>
+        <i data-lucide="bell" style="color: var(--text-muted);"></i>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="text-align: right;">
+                <div style="font-size: 0.9rem; font-weight: 600;">Keisuke</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Engineer</div>
+            </div>
+            <div
+                style="padding: 8px; background: var(--card-bg); border-radius: 50%; border: 1px solid var(--border-color);">
+                <i data-lucide="user"></i>
+            </div>
+        </div>
+    </div>
+</header>
+
+<style>
+    [data-theme="dark"] .theme-icon-dark {
+        display: inline-block;
+    }
+
+    [data-theme="dark"] .theme-icon-light {
+        display: none !important;
+    }
+
+    [data-theme="light"] .theme-icon-dark {
+        display: none !important;
+    }
+
+    [data-theme="light"] .theme-icon-light {
+        display: inline-block !important;
+    }
+</style>

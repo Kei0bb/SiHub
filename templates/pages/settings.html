@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<!-- Notification area -->
+<div id="notification" class="notification" style="display: none;"></div>
+
+<div class="filter-bar" style="justify-content: space-between;">
+    <h2>Settings</h2>
+</div>
+
+<div class="grid-dashboard">
+    <!-- Product Management -->
+    <div class="card">
+        <h3 style="margin-bottom: 20px;">Product Management</h3>
+        <div id="product-list" style="display: flex; flex-direction: column; gap: 10px;">
+            {% for product in products %}
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                <div>
+                    <div style="font-weight: 600;">{{ product.name }}</div>
+                    <small style="color: var(--text-muted);">ID: {{ product.id }}</small>
+                </div>
+                <button
+                    style="background: transparent; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; color: {{ 'var(--success-color)' if product.active else 'var(--text-muted)' }};"
+                    hx-post="/partials/toggle-product" hx-vals='{"product_id": "{{ product.id }}", "active": "{{ '
+                    false' if product.active else 'true' }}"}' hx-target="#product-list" hx-swap="outerHTML">
+                    {{ 'Active' if product.active else 'Inactive' }}
+                    <i data-lucide="{{ 'toggle-right' if product.active else 'toggle-left' }}"
+                        style="width: 24px; height: 24px;"></i>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Quick Info -->
+    <div class="card">
+        <div style="margin-bottom: 20px;">
+            <h3>Quick Info</h3>
+            <p style="color: var(--text-muted); margin-top: 10px; font-size: 0.9rem;">
+                Manage product visibility and set monthly yield targets below. Active products will appear in dashboards
+                and analytics.
+            </p>
+        </div>
+        <div
+            style="padding: 15px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color: var(--text-muted);">Total Products</span>
+                <span style="font-weight: 600;">{{ products|length }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: var(--text-muted);">Active Products</span>
+                <span style="font-weight: 600; color: var(--success-color);">{{
+                    products|selectattr('active')|list|length }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Yearly Yield Targets -->
+<div class="card" style="margin-top: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <i data-lucide="calendar" style="color: var(--primary-color);"></i>
+            <h3>Yearly Yield Targets</h3>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <button class="btn-secondary" style="padding: 8px;" hx-get="/settings?year={{ selected_year - 1 }}"
+                hx-target="body" hx-push-url="true">
+                <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+            </button>
+            <span style="font-weight: 600; font-size: 1.1rem; min-width: 60px; text-align: center;">
+                {{ selected_year }}
+            </span>
+            <button class="btn-secondary" style="padding: 8px;" hx-get="/settings?year={{ selected_year + 1 }}"
+                hx-target="body" hx-push-url="true">
+                <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+            </button>
+        </div>
+    </div>
+
+    {% set active_products = products | selectattr('active') | list %}
+    {% if not active_products %}
+    <div style="color: var(--text-muted); font-style: italic; padding: 20px; text-align: center;">
+        No active products. Activate products above to set yield targets.
+    </div>
+    {% else %}
+    <div style="overflow-x: auto;">
+        <table style="min-width: 800px;">
+            <thead>
+                <tr>
+                    <th style="text-align: left;">Product</th>
+                    {% for month in months %}
+                    <th style="text-align: center; padding: 8px 4px; font-size: 0.8rem;">{{ month }}</th>
+                    {% endfor %}
+                    <th style="text-align: center;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in active_products %}
+                <tr>
+                    <td style="font-weight: 500;">{{ product.name }}</td>
+                    {% for i in range(1, 13) %}
+                    {% set month_key = '%s-%02d' | format(selected_year, i) %}
+                    <td style="text-align: center; padding: 6px 4px;">
+                        <input type="number" step="0.1" min="0" max="100" name="target_{{ product.id }}_{{ month_key }}"
+                            value="{{ targets.get(product.id ~ '-' ~ month_key, '') }}"
+                            style="width: 55px; text-align: center;" placeholder="%">
+                    </td>
+                    {% endfor %}
+                    <td style="text-align: center;">
+                        <button class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;"
+                            hx-post="/api/v1/settings/targets/bulk" hx-include="[name^='target_{{ product.id }}']"
+                            hx-vals='{"product_id": "{{ product.id }}", "year": {{ selected_year }}}'
+                            onclick="showNotification('Targets saved for {{ product.name }}')">
+                            <i data-lucide="save" style="width: 14px; height: 14px; margin-right: 4px;"></i>
+                            Save All
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    function showNotification(msg) {
+        const el = document.getElementById('notification');
+        el.textContent = msg;
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 3000);
+    }
+</script>
+{% endblock %}

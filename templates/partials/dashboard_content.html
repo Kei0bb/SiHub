@@ -1,0 +1,96 @@
+<!-- Stats Cards -->
+{% if statistics %}
+<div class="stats-row">
+    <div class="card card-glass">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Average Yield</div>
+                <div class="stat-value" style="color: var(--primary-color);">{{ statistics.average }}%</div>
+            </div>
+            <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1);">
+                <i data-lucide="activity" style="color: var(--primary-color);"></i>
+            </div>
+        </div>
+    </div>
+    <div class="card card-glass">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Target</div>
+                <div class="stat-value" style="color: var(--success-color);">{{ statistics.target }}%</div>
+            </div>
+            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1);">
+                <i data-lucide="target" style="color: var(--success-color);"></i>
+            </div>
+        </div>
+    </div>
+    <div class="card card-glass">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Std Dev</div>
+                <div class="stat-value">{{ statistics.std_dev }}</div>
+            </div>
+            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1);">
+                <i data-lucide="layers" style="color: var(--warning-color);"></i>
+            </div>
+        </div>
+    </div>
+    <div class="card card-glass">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Total Lots</div>
+                <div class="stat-value">{{ statistics.count }}</div>
+            </div>
+            <div class="stat-icon" style="background: rgba(148, 163, 184, 0.1);">
+                <i data-lucide="layers" style="color: var(--text-muted);"></i>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Yield Trend Chart -->
+<div class="card" style="margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3>Yield Trend</h3>
+        <div class="mode-buttons">
+            <input type="hidden" name="aggregation" value="{{ aggregation }}">
+            {% for mode in ['daily', 'weekly', 'monthly', 'quarterly', 'bylot'] %}
+            <button class="mode-btn {{ 'active' if aggregation == mode else '' }}"
+                hx-get="/partials/yield-chart?aggregation={{ mode }}" hx-target="#yield-chart-container"
+                hx-include="[name='product_id']" onclick="document.querySelector('[name=aggregation]').value='{{ mode }}'; 
+                         document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                         this.classList.add('active');">
+                {{ mode.replace('bylot', 'Lot ID').title() }}
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+    <div id="yield-chart-container" class="chart-container">
+        {{ yield_chart_html | safe }}
+    </div>
+</div>
+
+<!-- Fail Ratio -->
+<div class="card">
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+        <i data-lucide="bar-chart-3" style="color: var(--danger-color);"></i>
+        <h3>Fail Ratio</h3>
+    </div>
+    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+        <div style="flex: 0 0 280px; height: 260px; overflow: hidden;">
+            {{ fail_ratio_chart_html | safe }}
+        </div>
+        <div style="flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 10px;">
+            {% for item in fail_ratio_data %}
+            <div
+                style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                <div style="width: 12px; height: 12px; border-radius: 3px; background: {{ item.color }};"></div>
+                <div style="flex: 1; font-weight: 500;">{{ item.name }}</div>
+                <div style="color: var(--text-muted);">{{ item.count | default(0) }} chips</div>
+                <div style="font-weight: 600; color: {{ item.color }}; min-width: 50px; text-align: right;">{{
+                    item.ratio }}%</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>

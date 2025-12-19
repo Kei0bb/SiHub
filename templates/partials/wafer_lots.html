@@ -1,0 +1,17 @@
+<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+    <i data-lucide="map"></i>
+    <h4 style="margin: 0;">Select Lots to Display</h4>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px;">
+    {% for lot_id in lots %}
+    <button class="lot-button {{ 'selected' if lot_id in selected_lots else '' }}" name="lot_id" value="{{ lot_id }}"
+        onclick="this.classList.toggle('selected');">
+        <i data-lucide="{{ 'check-square' if lot_id in selected_lots else 'square' }}"
+            style="width: 14px; height: 14px;"></i>
+        {{ lot_id }}
+    </button>
+    {% endfor %}
+    {% if not lots %}
+    <div style="color: var(--text-muted); font-style: italic;">No lots available for this product</div>
+    {% endif %}
+</div>

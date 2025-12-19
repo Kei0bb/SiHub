@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Filter Bar -->
+<div class="filter-bar">
+    <i data-lucide="search"></i>
+    <select class="filter-input" name="product_id"
+        style="border: none; background: transparent; font-size: 1rem; width: 300px; cursor: pointer;"
+        hx-get="/partials/dashboard-content" hx-target="#dashboard-main" hx-trigger="change"
+        hx-include="[name='aggregation']">
+        {% for product in products %}
+        <option value="{{ product.id }}" {{ 'selected' if product.id==selected_product else '' }}>
+            {{ product.name }} ({{ product.id }})
+        </option>
+        {% endfor %}
+    </select>
+    <div style="margin-left: auto;">
+        <button class="btn-primary" hx-get="/partials/dashboard-content" hx-target="#dashboard-main"
+            hx-include="[name='product_id'],[name='aggregation']">
+            Refresh
+        </button>
+    </div>
+</div>
+
+<div id="dashboard-main">
+    {% include "partials/dashboard_content.html" %}
+</div>
+{% endblock %}

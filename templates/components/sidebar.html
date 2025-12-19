@@ -1,0 +1,29 @@
+<aside class="sidebar">
+    <div class="sidebar-header">
+        <div style="width: 24px; height: 24px; background: var(--primary-color); border-radius: 6px;"></div>
+        SONAR
+    </div>
+    <nav>
+        <a href="/" class="nav-item {{ 'active' if active_page == 'dashboard' else '' }}" hx-boost="true">
+            <i data-lucide="layout-dashboard"></i>
+            Dashboard
+        </a>
+        <a href="/wafermap" class="nav-item {{ 'active' if active_page == 'wafermap' else '' }}" hx-boost="true">
+            <i data-lucide="map"></i>
+            Wafer Map
+        </a>
+        <a href="#" class="nav-item">
+            <i data-lucide="bar-chart-2"></i>
+            Analytics
+        </a>
+        <a href="#" class="nav-item">
+            <i data-lucide="file-text"></i>
+            Reports
+        </a>
+        <a href="/settings" class="nav-item {{ 'active' if active_page == 'settings' else '' }}" hx-boost="true"
+            style="margin-top: auto;">
+            <i data-lucide="settings"></i>
+            Settings
+        </a>
+    </nav>
+</aside>

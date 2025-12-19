@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Wafer Map{% endblock %}
+
+{% block content %}
+<div class="filter-bar">
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <i data-lucide="search"></i>
+        <select class="filter-input" name="product_id"
+            style="border: none; background: transparent; width: 200px; cursor: pointer; font-size: 1rem;"
+            hx-get="/partials/wafer-lots" hx-target="#lot-selection" hx-trigger="change">
+            {% for product in products %}
+            <option value="{{ product.id }}" {{ 'selected' if product.id==selected_product else '' }}>
+                {{ product.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div
+        style="display: flex; align-items: center; gap: 10px; border-left: 1px solid var(--border-color); padding-left: 20px;">
+        <i data-lucide="disc"></i>
+        <span id="lot-count" style="color: var(--text-muted); font-size: 0.9rem;">
+            {{ selected_lots|length }} of {{ lots|length }} lots selected
+        </span>
+    </div>
+    <div style="display: flex; gap: 8px; margin-left: auto;">
+        <button class="btn-primary" style="padding: 8px 12px; font-size: 0.85rem;"
+            onclick="document.querySelectorAll('.lot-button').forEach(b => b.classList.add('selected'));">
+            Select All
+        </button>
+        <button class="btn-secondary" style="padding: 8px 12px; font-size: 0.85rem;"
+            onclick="document.querySelectorAll('.lot-button').forEach(b => b.classList.remove('selected'));">
+            Clear
+        </button>
+        <button class="btn-primary" hx-get="/partials/wafer-maps" hx-target="#wafer-maps-container"
+            hx-include="[name='product_id'],.lot-button.selected">
+            Refresh
+        </button>
+    </div>
+</div>
+
+<!-- Lot Selection Grid -->
+<div class="card" style="margin-bottom: 20px; padding: 15px;" id="lot-selection">
+    {% include "partials/wafer_lots.html" %}
+</div>
+
+<!-- Wafer Maps Display -->
+<div id="wafer-maps-container">
+    {% include "partials/wafer_maps.html" %}
+</div>
+
+<!-- Zoom Modal (hidden by default) -->
+<div id="wafer-modal" class="modal-overlay" style="display: none;" onclick="this.style.display='none'">
+    <div class="modal-content" style="width: 520px; padding: 15px;" onclick="event.stopPropagation()">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <h3 id="modal-title" style="font-size: 1rem;">Wafer Detail</h3>
+            <button onclick="document.getElementById('wafer-modal').style.display='none'"
+                style="border: none; background: transparent; cursor: pointer; font-size: 1.2rem; color: var(--text-color);">×</button>
+        </div>
+        <div id="modal-chart" style="width: 490px; height: 490px;"></div>
+    </div>
+</div>
+
+<script>
+    function showWaferDetail(waferId, lotId) {
+        document.getElementById('modal-title').textContent = `Wafer #${waferId} (${lotId})`;
+        fetch(`/partials/wafer-detail?wafer_id=${waferId}&lot_id=${lotId}`)
+            .then(r => r.text())
+            .then(html => {
+                const modalChart = document.getElementById('modal-chart');
+                modalChart.innerHTML = html;
+
+                // Execute scripts that were inserted via innerHTML
+                const scripts = modalChart.querySelectorAll('script');
+                scripts.forEach(oldScript => {
+                    const newScript = document.createElement('script');
+                    newScript.textContent = oldScript.textContent;
+                    oldScript.parentNode.replaceChild(newScript, oldScript);
+                });
+
+                document.getElementById('wafer-modal').style.display = 'flex';
+            });
+    }
+</script>
+{% endblock %}

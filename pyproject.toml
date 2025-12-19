@@ -1,0 +1,19 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.123.5",
+    "jinja2>=3.1.0",
+    "numpy>=2.3.5",
+    "oracledb>=3.4.1",
+    "pandas>=2.3.3",
+    "plotly>=5.24.0",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.12.0",
+    "python-multipart>=0.0.21",
+    "sqlalchemy>=2.0.44",
+    "uvicorn>=0.38.0",
+]
