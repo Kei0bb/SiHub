@@ -62,9 +62,7 @@ class OracleDBService:
         try:
             with self.engine.connect() as conn:
                 result = conn.execute(query, {
-                    "product_id": product_id,
-                    "start_date": start_date.strftime('%Y-%m-%d'),
-                    "end_date": end_date.strftime('%Y-%m-%d')
+                    "product_id": product_id
                 })
                 
                 # SQLAlchemy returns Row objects - convert to dict for analytics service
