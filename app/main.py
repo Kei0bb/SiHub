@@ -115,6 +115,16 @@ def debug_oracle(product_id: str = None):
                     result[f"rows_for_{product_id}"] = specific.scalar()
                 except Exception as e:
                     result["product_query_error"] = str(e)
+            
+            # Check for wafer map related tables
+            wafer_tables = ["SEMI_MAP", "SEMI_BIN", "SEMI_CP_MAP", "WAFER_MAP", "CP_BIN_DATA"]
+            result["wafer_tables"] = {}
+            for table in wafer_tables:
+                try:
+                    check = conn.execute(text(f"SELECT COUNT(*) FROM {table} WHERE ROWNUM = 1"))
+                    result["wafer_tables"][table] = "exists"
+                except:
+                    result["wafer_tables"][table] = "not found"
                     
     except Exception as e:
         result["error"] = str(e)
