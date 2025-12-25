@@ -49,10 +49,11 @@ class OracleDBService:
         days_forward = (end_date - today).days
         
         # Use SYSDATE arithmetic which we know works
+        # Note: PERFECT_PASS_CHIP is aliased to PASS_CHIP_RATE for compatibility with analytics
         query_str = f"""
             SELECT 
                 SUBSTRATE_ID, LOT_ID, WAFER_ID, PRODUCT_ID, PROCESS, 
-                PASS_CHIP, PASS_CHIP_RATE, REGIST_DATE, REWORK_NEW, EFFECTIVE_NUM
+                PASS_CHIP, PERFECT_PASS_CHIP AS PASS_CHIP_RATE, REGIST_DATE, REWORK_NEW, EFFECTIVE_NUM
             FROM SEMI_CP_HEADER
             WHERE PRODUCT_ID = :product_id
             AND REGIST_DATE >= SYSDATE - {days_back}
