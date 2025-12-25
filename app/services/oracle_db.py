@@ -49,7 +49,7 @@ class OracleDBService:
         days_forward = (end_date - today).days
         
         # Use SYSDATE arithmetic which we know works
-        query = text(f"""
+        query_str = f"""
             SELECT 
                 SUBSTRATE_ID, LOT_ID, WAFER_ID, PRODUCT_ID, PROCESS, 
                 PASS_CHIP, PASS_CHIP_RATE, REGIST_DATE, REWORK_NEW, EFFECTIVE_NUM
@@ -58,21 +58,28 @@ class OracleDBService:
             AND REGIST_DATE >= SYSDATE - {days_back}
             AND REGIST_DATE <= SYSDATE + {days_forward}
             ORDER BY REGIST_DATE ASC
-        """)
+        """
+        
+        # Log the query for debugging
+        print(f"DEBUG Oracle Query: {query_str}")
+        print(f"DEBUG product_id: {product_id}, days_back: {days_back}, days_forward: {days_forward}")
+        
+        query = text(query_str)
         
         data = []
-        # Don't catch exceptions - let them propagate so we can see the error
         with self.engine.connect() as conn:
             result = conn.execute(query, {
                 "product_id": product_id
             })
             
-            # SQLAlchemy returns Row objects - convert to dict for analytics service
+            row_count = 0
             for row in result:
+                row_count += 1
                 row_dict = dict(row._mapping)
-                # Add empty bins dict (Oracle doesn't have bin breakdown in SEMI_CP_HEADER)
                 row_dict['bins'] = {}
                 data.append(row_dict)
+            
+            print(f"DEBUG Rows fetched: {row_count}")
                 
         return data
 
