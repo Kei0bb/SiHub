@@ -90,7 +90,17 @@ def generate_yield_trend_chart(
     
     dates = [d["date"] for d in aggregated]
     yields = [d["mean_yield"] for d in aggregated]
-    target = statistics.get("target", 95.0)
+    target = statistics.get("target")  # Can be None
+    
+    # Calculate dynamic y-axis range
+    min_yield = min(yields) if yields else 0
+    max_yield = max(yields) if yields else 100
+    if target is not None:
+        min_yield = min(min_yield, target)
+        max_yield = max(max_yield, target)
+    # Add 5% padding on each side
+    y_range_min = max(0, min_yield - 5)
+    y_range_max = min(100, max_yield + 5)
     
     # Collect all fail bins
     all_bins = set()
@@ -114,16 +124,17 @@ def generate_yield_trend_chart(
         yaxis='y1'
     ))
     
-    # Target line
-    fig.add_trace(go.Scatter(
-        x=[dates[0], dates[-1]],
-        y=[target, target],
-        mode='lines',
-        name='Target',
-        line=dict(color='#10b981', dash='dash', width=2),
-        hoverinfo='skip',
-        yaxis='y1'
-    ))
+    # Target line (only if target is set)
+    if target is not None:
+        fig.add_trace(go.Scatter(
+            x=[dates[0], dates[-1]],
+            y=[target, target],
+            mode='lines',
+            name='Target',
+            line=dict(color='#10b981', dash='dash', width=2),
+            hoverinfo='skip',
+            yaxis='y1'
+        ))
     
     # Fail bin bars (right axis)
     colors = ['#ef4444', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1']
@@ -157,7 +168,7 @@ def generate_yield_trend_chart(
         ),
         yaxis=dict(
             title=dict(text='Yield (%)', font=dict(color='#3b82f6')),
-            range=[80, 100],
+            range=[y_range_min, y_range_max],
             gridcolor='rgba(128, 128, 128, 0.2)',
             zerolinecolor='rgba(128, 128, 128, 0.2)',
             tickfont=dict(color='#3b82f6')
