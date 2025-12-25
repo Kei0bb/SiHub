@@ -42,13 +42,14 @@ class OracleDBService:
         return self._engine
 
     def get_cp_yield_trend(self, product_id: str, start_date: date, end_date: date) -> List[dict]:
+        # Use TRUNC for date-only comparison to avoid time issues
         query = text("""
             SELECT 
                 SUBSTRATE_ID, LOT_ID, WAFER_ID, PRODUCT_ID, PROCESS, 
                 PASS_CHIP, PASS_CHIP_RATE, REGIST_DATE, REWORK_NEW, EFFECTIVE_NUM
             FROM SEMI_CP_HEADER
             WHERE PRODUCT_ID = :product_id
-            AND REGIST_DATE BETWEEN :start_date AND :end_date
+            AND TRUNC(REGIST_DATE) BETWEEN TO_DATE(:start_date, 'YYYY-MM-DD') AND TO_DATE(:end_date, 'YYYY-MM-DD')
             ORDER BY REGIST_DATE ASC
         """)
         
@@ -57,8 +58,8 @@ class OracleDBService:
             with self.engine.connect() as conn:
                 result = conn.execute(query, {
                     "product_id": product_id,
-                    "start_date": datetime.combine(start_date, datetime.min.time()),
-                    "end_date": datetime.combine(end_date, datetime.max.time())
+                    "start_date": start_date.strftime('%Y-%m-%d'),
+                    "end_date": end_date.strftime('%Y-%m-%d')
                 })
                 
                 # SQLAlchemy returns Row objects - convert to dict for analytics service
