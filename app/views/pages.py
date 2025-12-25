@@ -244,14 +244,20 @@ async def settings(
     months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     
-    # Get targets for all active products
+    # Get targets for all active products using appropriate service
     targets = {}
     for product in products:
-        if product["active"]:
+        if product.get("active"):
             for month in range(1, 13):
                 month_str = f"{year}-{month:02d}"
-                target = mock_settings_service.get_target(product["id"], month_str)
-                targets[f"{product['id']}-{month_str}"] = target
+                if app_settings.USE_MOCK_DB:
+                    target = mock_settings_service.get_target(product["id"], month_str)
+                else:
+                    from app.services.oracle_db import oracle_db_service
+                    target = oracle_db_service.get_target(product["id"], month_str)
+                # Only add to targets if value exists (don't add None or default values)
+                if target is not None:
+                    targets[f"{product['id']}-{month_str}"] = target
     
     return templates.TemplateResponse("pages/settings.html", {
         "request": request,
@@ -272,11 +278,14 @@ async def toggle_product_partial(request: Request):
     active_str = form_data.get("active", "false")
     active = active_str.lower() == "true"
     
-    # Toggle the product
-    mock_settings_service.toggle_product(product_id, active)
-    
-    # Return updated product list
-    products = mock_settings_service.get_products()
+    # Toggle the product using appropriate service
+    if app_settings.USE_MOCK_DB:
+        mock_settings_service.toggle_product(product_id, active)
+        products = mock_settings_service.get_products()
+    else:
+        from app.services.oracle_db import oracle_db_service
+        oracle_db_service.toggle_product(product_id, active)
+        products = oracle_db_service.get_products()
     
     return templates.TemplateResponse("partials/product_list.html", {
         "request": request,

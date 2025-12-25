@@ -10,6 +10,9 @@ class OracleDBService:
         # Lazy initialization - don't create engine until first use
         self._engine = None
         self._database_url = None
+        # In-memory cache for product active states and targets
+        self._product_active_states = {}  # product_id -> bool
+        self._yield_targets = {}  # "product_id-YYYY-MM" -> float
     
     @property
     def engine(self):
@@ -109,15 +112,35 @@ class OracleDBService:
                 result = conn.execute(query)
                 for row in result:
                     product_id = row[0]
+                    # Use cached active state, default to False
+                    is_active = self._product_active_states.get(product_id, False)
                     products.append({
                         "id": product_id,
-                        "name": product_id,  # Use ID as name for Oracle data
-                        "active": True  # All Oracle products are active by default
+                        "name": product_id,
+                        "active": is_active
                     })
         except Exception as e:
             print(f"Oracle DB Error getting products: {e}")
             return []
         
         return products
+    
+    def toggle_product(self, product_id: str, active: bool) -> dict:
+        """Toggle product active state (stored in memory cache)"""
+        self._product_active_states[product_id] = active
+        return {"id": product_id, "name": product_id, "active": active}
+    
+    def get_target(self, product_id: str, month: str = None) -> float:
+        """Get yield target for a product/month (returns None if not set)"""
+        if not month:
+            month = datetime.now().strftime("%Y-%m")
+        key = f"{product_id}-{month}"
+        return self._yield_targets.get(key)  # Return None if not set
+    
+    def set_target(self, product_id: str, month: str, target: float):
+        """Set yield target for a product/month"""
+        key = f"{product_id}-{month}"
+        self._yield_targets[key] = target
+        return self._yield_targets
 
 oracle_db_service = OracleDBService()

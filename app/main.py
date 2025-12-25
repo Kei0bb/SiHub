@@ -249,17 +249,28 @@ def get_products():
 
 @app.post(f"{settings.API_V1_STR}/settings/products/{{product_id}}")
 def toggle_product(product_id: str, request: ProductToggleRequest):
-    result = mock_settings_service.toggle_product(product_id, request.active)
-    # Return updated product list HTML for HTMX
+    if settings.USE_MOCK_DB:
+        result = mock_settings_service.toggle_product(product_id, request.active)
+    else:
+        from app.services.oracle_db import oracle_db_service
+        result = oracle_db_service.toggle_product(product_id, request.active)
     return result
 
 @app.get(f"{settings.API_V1_STR}/settings/targets")
 def get_target(product_id: str, month: str = None):
-    return {"target": mock_settings_service.get_target(product_id, month)}
+    if settings.USE_MOCK_DB:
+        return {"target": mock_settings_service.get_target(product_id, month)}
+    else:
+        from app.services.oracle_db import oracle_db_service
+        return {"target": oracle_db_service.get_target(product_id, month)}
 
 @app.post(f"{settings.API_V1_STR}/settings/targets")
 def set_target(request: TargetSetRequest):
-    mock_settings_service.set_target(request.product_id, request.month, request.target)
+    if settings.USE_MOCK_DB:
+        mock_settings_service.set_target(request.product_id, request.month, request.target)
+    else:
+        from app.services.oracle_db import oracle_db_service
+        oracle_db_service.set_target(request.product_id, request.month, request.target)
     return {"status": "success"}
 
 @app.post(f"{settings.API_V1_STR}/settings/targets/bulk")
@@ -271,11 +282,14 @@ async def set_targets_bulk(request: Request):
     
     for key, value in form_data.items():
         if key.startswith(f"target_{product_id}"):
-            # Extract month from key like target_PRODUCT-A_2024-01
             parts = key.split("_")
             if len(parts) >= 3:
                 month = parts[-1]
                 if value:
-                    mock_settings_service.set_target(product_id, month, float(value))
+                    if settings.USE_MOCK_DB:
+                        mock_settings_service.set_target(product_id, month, float(value))
+                    else:
+                        from app.services.oracle_db import oracle_db_service
+                        oracle_db_service.set_target(product_id, month, float(value))
     
     return {"status": "success"}
