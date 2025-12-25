@@ -1,14 +1,22 @@
 import numpy as np
 from typing import List, Dict, Any
 from app.models.sonar_schema import SemiCpHeader
+from datetime import datetime
 
 class AnalyticsService:
     def calculate_yield_stats(self, data: List[Dict[str, Any]]) -> Dict[str, Any]:
         if not data:
             return {}
-            
-        # Extract yields for overall stats
-        yields = [d['PASS_CHIP_RATE'] for d in data if d.get('PASS_CHIP_RATE') is not None]
+        
+        # Convert and extract yields for overall stats (handle Oracle type issues)
+        yields = []
+        for d in data:
+            rate = d.get('PASS_CHIP_RATE')
+            if rate is not None:
+                try:
+                    yields.append(float(rate))
+                except (ValueError, TypeError):
+                    pass
         
         if not yields:
             return {}
@@ -26,7 +34,17 @@ class AnalyticsService:
         # Daily Aggregation for Trend
         daily_map = {}
         for row in data:
-            date_key = row['REGIST_DATE'].date()
+            # Handle date conversion (Oracle may return datetime or date)
+            regist_date = row.get('REGIST_DATE')
+            if regist_date is None:
+                continue
+            if hasattr(regist_date, 'date'):
+                date_key = regist_date.date()
+            elif isinstance(regist_date, str):
+                date_key = datetime.strptime(regist_date[:10], '%Y-%m-%d').date()
+            else:
+                date_key = regist_date
+                
             if date_key not in daily_map:
                 daily_map[date_key] = {
                     'yields': [],
@@ -35,8 +53,19 @@ class AnalyticsService:
                     'lot_ids': set()
                 }
             
-            daily_map[date_key]['yields'].append(row['PASS_CHIP_RATE'])
-            daily_map[date_key]['total_chips'] += row.get('EFFECTIVE_NUM', 0)
+            # Convert values safely
+            try:
+                yield_val = float(row.get('PASS_CHIP_RATE', 0))
+            except (ValueError, TypeError):
+                yield_val = 0
+            
+            try:
+                effective_num = int(row.get('EFFECTIVE_NUM', 0) or 0)
+            except (ValueError, TypeError):
+                effective_num = 0
+                
+            daily_map[date_key]['yields'].append(yield_val)
+            daily_map[date_key]['total_chips'] += effective_num
             if 'LOT_ID' in row:
                 daily_map[date_key]['lot_ids'].add(row['LOT_ID'])
             
