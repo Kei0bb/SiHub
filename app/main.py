@@ -148,33 +148,34 @@ def debug_trend(product_id: str):
     result = {
         "mode": "mock" if is_mock else "oracle",
         "product_id": product_id,
-        "date_range": {"start": str(start_date), "end": str(end_date)}
+        "date_range": {"start": str(start_date), "end": str(end_date)},
+        "db_service_type": str(type(db_service).__name__)
     }
     
     try:
+        # Test with get_db_service
         data = db_service.get_cp_yield_trend(product_id, start_date, end_date)
-        result["record_count"] = len(data)
+        result["via_deps_record_count"] = len(data)
         
-        if data:
-            # Show first record structure
-            first_record = data[0]
-            result["first_record_keys"] = list(first_record.keys()) if isinstance(first_record, dict) else str(type(first_record))
-            result["first_record"] = {k: str(v) for k, v in first_record.items()} if isinstance(first_record, dict) else str(first_record)
-        else:
-            result["message"] = "No data returned for this date range"
+        # Test directly with oracle_db_service (bypass deps)
+        if not is_mock:
+            from app.services.oracle_db import oracle_db_service
+            data_direct = oracle_db_service.get_cp_yield_trend(product_id, start_date, end_date)
+            result["via_oracle_direct_count"] = len(data_direct)
             
-            # Direct SQL test bypassing the method
-            if not is_mock:
-                from app.services.oracle_db import oracle_db_service
-                with oracle_db_service.engine.connect() as conn:
-                    # Test with exact same query as in get_cp_yield_trend
-                    direct_test = conn.execute(
-                        text(f"""SELECT COUNT(*) FROM SEMI_CP_HEADER 
-                                WHERE PRODUCT_ID = :pid 
-                                AND REGIST_DATE >= SYSDATE - 30"""),
-                        {"pid": product_id}
-                    )
-                    result["direct_query_count"] = direct_test.scalar()
+            if data_direct:
+                first_record = data_direct[0]
+                result["first_record"] = {k: str(v) for k, v in first_record.items()}
+            
+            # Raw SQL count
+            with oracle_db_service.engine.connect() as conn:
+                direct_test = conn.execute(
+                    text(f"""SELECT COUNT(*) FROM SEMI_CP_HEADER 
+                            WHERE PRODUCT_ID = :pid 
+                            AND REGIST_DATE >= SYSDATE - 30"""),
+                    {"pid": product_id}
+                )
+                result["raw_sql_count"] = direct_test.scalar()
             
             # Try to get any data for this product
             if not is_mock:
