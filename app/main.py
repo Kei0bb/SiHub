@@ -60,6 +60,67 @@ def health_check():
     
     return result
 
+# Debug endpoint to check Oracle data
+@app.get(f"{settings.API_V1_STR}/debug/oracle")
+def debug_oracle(product_id: str = None):
+    """Debug Oracle connection and data"""
+    from app.api.deps import get_db_service
+    from app.services.mock_db import MockDBService
+    from datetime import date, timedelta
+    
+    db_service = get_db_service()
+    is_mock = isinstance(db_service, MockDBService)
+    
+    if is_mock:
+        return {"error": "Currently using MockDB, set USE_MOCK_DB=False"}
+    
+    result = {"mode": "oracle"}
+    
+    try:
+        from app.services.oracle_db import oracle_db_service
+        with oracle_db_service.engine.connect() as conn:
+            # Check if table exists
+            try:
+                count_result = conn.execute(text("SELECT COUNT(*) FROM SEMI_CP_HEADER"))
+                result["table_exists"] = True
+                result["total_rows"] = count_result.scalar()
+            except Exception as e:
+                result["table_exists"] = False
+                result["table_error"] = str(e)
+                return result
+            
+            # Get sample product IDs
+            try:
+                products = conn.execute(text("SELECT DISTINCT PRODUCT_ID FROM SEMI_CP_HEADER WHERE ROWNUM <= 10"))
+                result["sample_products"] = [row[0] for row in products]
+            except Exception as e:
+                result["products_error"] = str(e)
+            
+            # Get date range
+            try:
+                date_range = conn.execute(text("SELECT MIN(REGIST_DATE), MAX(REGIST_DATE) FROM SEMI_CP_HEADER"))
+                row = date_range.fetchone()
+                if row:
+                    result["date_range"] = {"min": str(row[0]), "max": str(row[1])}
+            except Exception as e:
+                result["date_error"] = str(e)
+            
+            # If product_id provided, check specific data
+            if product_id:
+                try:
+                    specific = conn.execute(
+                        text("SELECT COUNT(*) FROM SEMI_CP_HEADER WHERE PRODUCT_ID = :pid"),
+                        {"pid": product_id}
+                    )
+                    result[f"rows_for_{product_id}"] = specific.scalar()
+                except Exception as e:
+                    result["product_query_error"] = str(e)
+                    
+    except Exception as e:
+        result["error"] = str(e)
+    
+    return result
+
 
 from app.services.mock_db import mock_settings_service
 from pydantic import BaseModel
