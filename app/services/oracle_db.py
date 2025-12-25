@@ -50,37 +50,35 @@ class OracleDBService:
         
         # Use SYSDATE arithmetic which we know works
         # Note: PERFECT_PASS_CHIP is aliased to PASS_CHIP_RATE for compatibility with analytics
+        # Filter by PROCESS = 'CP' to get only CP process data
         query_str = f"""
             SELECT 
                 SUBSTRATE_ID, LOT_ID, WAFER_ID, PRODUCT_ID, PROCESS, 
                 PASS_CHIP, PERFECT_PASS_CHIP AS PASS_CHIP_RATE, REGIST_DATE, REWORK_NEW, EFFECTIVE_NUM
             FROM SEMI_CP_HEADER
             WHERE PRODUCT_ID = :product_id
+            AND PROCESS = 'CP'
             AND REGIST_DATE >= SYSDATE - {days_back}
             AND REGIST_DATE <= SYSDATE + {days_forward}
             ORDER BY REGIST_DATE ASC
         """
         
-        # Log the query for debugging
-        print(f"DEBUG Oracle Query: {query_str}")
-        print(f"DEBUG product_id: {product_id}, days_back: {days_back}, days_forward: {days_forward}")
-        
         query = text(query_str)
         
         data = []
-        with self.engine.connect() as conn:
-            result = conn.execute(query, {
-                "product_id": product_id
-            })
-            
-            row_count = 0
-            for row in result:
-                row_count += 1
-                row_dict = dict(row._mapping)
-                row_dict['bins'] = {}
-                data.append(row_dict)
-            
-            print(f"DEBUG Rows fetched: {row_count}")
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(query, {
+                    "product_id": product_id
+                })
+                
+                for row in result:
+                    row_dict = dict(row._mapping)
+                    row_dict['bins'] = {}
+                    data.append(row_dict)
+        except Exception as e:
+            print(f"Oracle DB Error: {e}")
+            return []
                 
         return data
 
