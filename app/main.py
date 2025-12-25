@@ -131,6 +131,57 @@ def debug_oracle(product_id: str = None):
     
     return result
 
+# Debug endpoint for raw yield trend data
+@app.get(f"{settings.API_V1_STR}/debug/trend")
+def debug_trend(product_id: str):
+    """Debug raw yield trend data from Oracle"""
+    from datetime import date, timedelta
+    from app.api.deps import get_db_service
+    from app.services.mock_db import MockDBService
+    
+    db_service = get_db_service()
+    is_mock = isinstance(db_service, MockDBService)
+    
+    end_date = date.today()
+    start_date = end_date - timedelta(days=30)
+    
+    result = {
+        "mode": "mock" if is_mock else "oracle",
+        "product_id": product_id,
+        "date_range": {"start": str(start_date), "end": str(end_date)}
+    }
+    
+    try:
+        data = db_service.get_cp_yield_trend(product_id, start_date, end_date)
+        result["record_count"] = len(data)
+        
+        if data:
+            # Show first record structure
+            first_record = data[0]
+            result["first_record_keys"] = list(first_record.keys()) if isinstance(first_record, dict) else str(type(first_record))
+            result["first_record"] = {k: str(v) for k, v in first_record.items()} if isinstance(first_record, dict) else str(first_record)
+        else:
+            result["message"] = "No data returned for this date range"
+            
+            # Try to get any data for this product
+            if not is_mock:
+                from app.services.oracle_db import oracle_db_service
+                with oracle_db_service.engine.connect() as conn:
+                    # Check if there's any data for this product in the last year
+                    check = conn.execute(
+                        text("""SELECT COUNT(*), MIN(REGIST_DATE), MAX(REGIST_DATE) 
+                                FROM SEMI_CP_HEADER WHERE PRODUCT_ID = :pid"""),
+                        {"pid": product_id}
+                    )
+                    row = check.fetchone()
+                    result["product_total_records"] = row[0]
+                    result["product_date_range"] = {"min": str(row[1]), "max": str(row[2])}
+                    
+    except Exception as e:
+        result["error"] = str(e)
+    
+    return result
+
 
 from app.services.mock_db import mock_settings_service
 from pydantic import BaseModel
