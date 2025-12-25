@@ -131,6 +131,25 @@ def debug_oracle(product_id: str = None):
     
     return result
 
+# Debug endpoint to get table columns
+@app.get(f"{settings.API_V1_STR}/debug/columns")
+def debug_columns():
+    """Get column names from SEMI_CP_HEADER"""
+    from app.services.oracle_db import oracle_db_service
+    
+    try:
+        with oracle_db_service.engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT COLUMN_NAME, DATA_TYPE 
+                FROM USER_TAB_COLUMNS 
+                WHERE TABLE_NAME = 'SEMI_CP_HEADER'
+                ORDER BY COLUMN_ID
+            """))
+            columns = [{"name": row[0], "type": row[1]} for row in result]
+            return {"columns": columns}
+    except Exception as e:
+        return {"error": str(e)}
+
 # Debug endpoint for raw yield trend data
 @app.get(f"{settings.API_V1_STR}/debug/trend")
 def debug_trend(product_id: str):
