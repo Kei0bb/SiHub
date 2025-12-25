@@ -34,8 +34,8 @@ class AnalyticsService:
         # Daily Aggregation for Trend
         daily_map = {}
         for row in data:
-            # Handle date conversion (Oracle may return datetime or date)
-            regist_date = row.get('REGIST_DATE')
+            # Handle case-insensitive column names (Oracle may return lowercase)
+            regist_date = row.get('REGIST_DATE') or row.get('regist_date')
             if regist_date is None:
                 continue
             if hasattr(regist_date, 'date'):
@@ -53,21 +53,25 @@ class AnalyticsService:
                     'lot_ids': set()
                 }
             
-            # Convert values safely
+            # Convert values safely (handle case-insensitive keys)
+            pass_chip_rate = row.get('PASS_CHIP_RATE') or row.get('pass_chip_rate')
             try:
-                yield_val = float(row.get('PASS_CHIP_RATE', 0))
+                yield_val = float(pass_chip_rate) if pass_chip_rate is not None else 0
             except (ValueError, TypeError):
                 yield_val = 0
             
+            effective_num = row.get('EFFECTIVE_NUM') or row.get('effective_num')
             try:
-                effective_num = int(row.get('EFFECTIVE_NUM', 0) or 0)
+                effective_num = int(effective_num or 0)
             except (ValueError, TypeError):
                 effective_num = 0
+            
+            lot_id = row.get('LOT_ID') or row.get('lot_id')
                 
             daily_map[date_key]['yields'].append(yield_val)
             daily_map[date_key]['total_chips'] += effective_num
-            if 'LOT_ID' in row:
-                daily_map[date_key]['lot_ids'].add(row['LOT_ID'])
+            if lot_id:
+                daily_map[date_key]['lot_ids'].add(lot_id)
             
             bins = row.get('bins', {})
             for bin_name, count in bins.items():
