@@ -53,7 +53,12 @@ async def dashboard(
         start_date = end_date - timedelta(days=30)
         data = db_service.get_cp_yield_trend(product_id, start_date, end_date)
         stats = analytics_service.calculate_yield_stats(data)
-        target = mock_settings_service.get_target(product_id)
+        # Get target from appropriate service (None if not set)
+        if app_settings.USE_MOCK_DB:
+            target = mock_settings_service.get_target(product_id)
+        else:
+            from app.services.oracle_db import oracle_db_service
+            target = oracle_db_service.get_target(product_id)
         stats['target'] = target
         data = {"daily_trends": stats.get("daily_trends", []), "statistics": stats}
     
@@ -91,7 +96,11 @@ async def dashboard_content_partial(
     
     data = db_service.get_cp_yield_trend(product_id, start_date, end_date)
     stats = analytics_service.calculate_yield_stats(data)
-    target = mock_settings_service.get_target(product_id)
+    if app_settings.USE_MOCK_DB:
+        target = mock_settings_service.get_target(product_id)
+    else:
+        from app.services.oracle_db import oracle_db_service
+        target = oracle_db_service.get_target(product_id)
     stats['target'] = target
     data = {"daily_trends": stats.get("daily_trends", []), "statistics": stats}
     
@@ -122,7 +131,11 @@ async def yield_chart_partial(
     
     data = db_service.get_cp_yield_trend(product_id, start_date, end_date)
     stats = analytics_service.calculate_yield_stats(data)
-    target = mock_settings_service.get_target(product_id)
+    if app_settings.USE_MOCK_DB:
+        target = mock_settings_service.get_target(product_id)
+    else:
+        from app.services.oracle_db import oracle_db_service
+        target = oracle_db_service.get_target(product_id)
     stats['target'] = target
     data = {"daily_trends": stats.get("daily_trends", []), "statistics": stats}
     
