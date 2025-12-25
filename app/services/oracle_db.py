@@ -42,19 +42,21 @@ class OracleDBService:
         return self._engine
 
     def get_cp_yield_trend(self, product_id: str, start_date: date, end_date: date) -> List[dict]:
-        # Use string format dates with TO_DATE for Oracle compatibility
-        start_str = start_date.strftime('%Y-%m-%d')
-        end_str = end_date.strftime('%Y-%m-%d')
+        # Calculate days from today for SYSDATE-based query
+        from datetime import date as date_type
+        today = date_type.today()
+        days_back = (today - start_date).days
+        days_forward = (end_date - today).days
         
-        # Inline the dates directly in the query to avoid parameter binding issues
+        # Use SYSDATE arithmetic which we know works
         query = text(f"""
             SELECT 
                 SUBSTRATE_ID, LOT_ID, WAFER_ID, PRODUCT_ID, PROCESS, 
                 PASS_CHIP, PASS_CHIP_RATE, REGIST_DATE, REWORK_NEW, EFFECTIVE_NUM
             FROM SEMI_CP_HEADER
             WHERE PRODUCT_ID = :product_id
-            AND REGIST_DATE >= TO_DATE('{start_str}', 'YYYY-MM-DD')
-            AND REGIST_DATE < TO_DATE('{end_str}', 'YYYY-MM-DD') + 1
+            AND REGIST_DATE >= SYSDATE - {days_back}
+            AND REGIST_DATE <= SYSDATE + {days_forward}
             ORDER BY REGIST_DATE ASC
         """)
         
