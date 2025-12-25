@@ -9,9 +9,10 @@ class AnalyticsService:
             return {}
         
         # Convert and extract yields for overall stats (handle Oracle type issues)
+        # Oracle may return lowercase column names
         yields = []
         for d in data:
-            rate = d.get('PASS_CHIP_RATE')
+            rate = d.get('PASS_CHIP_RATE') or d.get('pass_chip_rate')
             if rate is not None:
                 try:
                     yields.append(float(rate))

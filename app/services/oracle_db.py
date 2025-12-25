@@ -73,7 +73,8 @@ class OracleDBService:
                 })
                 
                 for row in result:
-                    row_dict = dict(row._mapping)
+                    # Normalize keys to uppercase for analytics compatibility
+                    row_dict = {k.upper(): v for k, v in row._mapping.items()}
                     row_dict['bins'] = {}
                     data.append(row_dict)
         except Exception as e:
