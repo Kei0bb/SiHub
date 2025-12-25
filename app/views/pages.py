@@ -16,6 +16,15 @@ from app.services.chart_generator import (
 )
 from app.services.mock_db import mock_settings_service
 from app.services.analytics import analytics_service
+from app.core.config import settings as app_settings
+
+def get_products_list():
+    """Get products from Oracle or Mock based on settings"""
+    if app_settings.USE_MOCK_DB:
+        return mock_settings_service.get_products()
+    else:
+        from app.services.oracle_db import oracle_db_service
+        return oracle_db_service.get_products()
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -30,8 +39,8 @@ async def dashboard(
     aggregation: str = "daily"
 ):
     """Main dashboard page"""
-    products = mock_settings_service.get_products()
-    active_products = [p for p in products if p["active"]]
+    products = get_products_list()
+    active_products = [p for p in products if p.get("active", True)]
     
     if not product_id and active_products:
         product_id = active_products[0]["id"]
@@ -128,8 +137,8 @@ async def wafermap(
     product_id: Optional[str] = None
 ):
     """Wafer map viewer page"""
-    products = mock_settings_service.get_products()
-    active_products = [p for p in products if p["active"]]
+    products = get_products_list()
+    active_products = [p for p in products if p.get("active", True)]
     
     if not product_id and active_products:
         product_id = active_products[0]["id"]
@@ -230,7 +239,7 @@ async def settings(
     if year is None:
         year = datetime.now().year
     
-    products = mock_settings_service.get_products()
+    products = get_products_list()
     
     months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']

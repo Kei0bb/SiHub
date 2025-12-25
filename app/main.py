@@ -148,7 +148,11 @@ class TargetSetRequest(BaseModel):
 
 @app.get(f"{settings.API_V1_STR}/settings/products")
 def get_products():
-    return mock_settings_service.get_products()
+    if settings.USE_MOCK_DB:
+        return mock_settings_service.get_products()
+    else:
+        from app.services.oracle_db import oracle_db_service
+        return oracle_db_service.get_products()
 
 @app.post(f"{settings.API_V1_STR}/settings/products/{{product_id}}")
 def toggle_product(product_id: str, request: ProductToggleRequest):

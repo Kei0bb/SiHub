@@ -84,5 +84,31 @@ class OracleDBService:
             y=[],
             bin=[]
         )
+    
+    def get_products(self) -> List[dict]:
+        """Get distinct products from Oracle DB"""
+        query = text("""
+            SELECT DISTINCT PRODUCT_ID 
+            FROM SEMI_CP_HEADER 
+            WHERE PRODUCT_ID IS NOT NULL
+            ORDER BY PRODUCT_ID
+        """)
+        
+        products = []
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(query)
+                for row in result:
+                    product_id = row[0]
+                    products.append({
+                        "id": product_id,
+                        "name": product_id,  # Use ID as name for Oracle data
+                        "active": True  # All Oracle products are active by default
+                    })
+        except Exception as e:
+            print(f"Oracle DB Error getting products: {e}")
+            return []
+        
+        return products
 
 oracle_db_service = OracleDBService()
