@@ -7,17 +7,39 @@ from app.models.wafer_map import WaferMapResponse
 
 class OracleDBService:
     def __init__(self):
-        # Construct SQLAlchemy connection string
-        # Format: oracle+oracledb://user:password@dsn
-        self.database_url = f"oracle+oracledb://{settings.ORACLE_USER}:{settings.ORACLE_PASSWORD}@{settings.ORACLE_DSN}"
-        
-        # Create engine
-        self.engine = create_engine(
-            self.database_url,
-            pool_size=5,
-            max_overflow=10,
-            pool_recycle=3600
-        )
+        # Lazy initialization - don't create engine until first use
+        self._engine = None
+        self._database_url = None
+    
+    @property
+    def engine(self):
+        """Lazy engine creation - only connects when actually used"""
+        if self._engine is None:
+            import oracledb
+            
+            dsn = settings.ORACLE_DSN
+            
+            # Check if DSN is in SID format (host:port:SID) vs Service Name format (host:port/service)
+            if ':' in dsn and '/' not in dsn:
+                # SID format: host:port:SID
+                parts = dsn.split(':')
+                if len(parts) == 3:
+                    host, port, sid = parts
+                    # Use oracledb.makedsn to create proper DSN for SID
+                    dsn = oracledb.makedsn(host, int(port), sid=sid)
+            
+            # Construct SQLAlchemy connection string
+            # Format: oracle+oracledb://user:password@dsn
+            self._database_url = f"oracle+oracledb://{settings.ORACLE_USER}:{settings.ORACLE_PASSWORD}@{dsn}"
+            
+            # Create engine with thick mode for better compatibility
+            self._engine = create_engine(
+                self._database_url,
+                pool_size=5,
+                max_overflow=10,
+                pool_recycle=3600
+            )
+        return self._engine
 
     def get_cp_yield_trend(self, product_id: str, start_date: date, end_date: date) -> List[SemiCpHeader]:
         query = text("""
