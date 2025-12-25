@@ -163,6 +163,19 @@ def debug_trend(product_id: str):
         else:
             result["message"] = "No data returned for this date range"
             
+            # Direct SQL test bypassing the method
+            if not is_mock:
+                from app.services.oracle_db import oracle_db_service
+                with oracle_db_service.engine.connect() as conn:
+                    # Test with exact same query as in get_cp_yield_trend
+                    direct_test = conn.execute(
+                        text(f"""SELECT COUNT(*) FROM SEMI_CP_HEADER 
+                                WHERE PRODUCT_ID = :pid 
+                                AND REGIST_DATE >= SYSDATE - 30"""),
+                        {"pid": product_id}
+                    )
+                    result["direct_query_count"] = direct_test.scalar()
+            
             # Try to get any data for this product
             if not is_mock:
                 from app.services.oracle_db import oracle_db_service
