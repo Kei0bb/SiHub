@@ -177,6 +177,15 @@ def debug_trend(product_id: str):
                     result["product_total_records"] = row[0]
                     result["product_date_range"] = {"min": str(row[1]), "max": str(row[2])}
                     
+                    # Try direct SQL query for last 30 days
+                    direct_check = conn.execute(
+                        text("""SELECT COUNT(*) FROM SEMI_CP_HEADER 
+                                WHERE PRODUCT_ID = :pid 
+                                AND REGIST_DATE >= SYSDATE - 30"""),
+                        {"pid": product_id}
+                    )
+                    result["direct_30day_count"] = direct_check.scalar()
+                    
     except Exception as e:
         result["error"] = str(e)
     
