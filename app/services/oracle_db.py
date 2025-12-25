@@ -61,23 +61,18 @@ class OracleDBService:
         """)
         
         data = []
-        try:
-            with self.engine.connect() as conn:
-                result = conn.execute(query, {
-                    "product_id": product_id
-                })
-                
-                # SQLAlchemy returns Row objects - convert to dict for analytics service
-                for row in result:
-                    row_dict = dict(row._mapping)
-                    # Add empty bins dict (Oracle doesn't have bin breakdown in SEMI_CP_HEADER)
-                    row_dict['bins'] = {}
-                    data.append(row_dict)
-                    
-        except Exception as e:
-            print(f"Oracle DB Error: {e}")
-            # In a real app, log error or raise HTTP exception
-            return []
+        # Don't catch exceptions - let them propagate so we can see the error
+        with self.engine.connect() as conn:
+            result = conn.execute(query, {
+                "product_id": product_id
+            })
+            
+            # SQLAlchemy returns Row objects - convert to dict for analytics service
+            for row in result:
+                row_dict = dict(row._mapping)
+                # Add empty bins dict (Oracle doesn't have bin breakdown in SEMI_CP_HEADER)
+                row_dict['bins'] = {}
+                data.append(row_dict)
                 
         return data
 
