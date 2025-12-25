@@ -41,7 +41,7 @@ class OracleDBService:
             )
         return self._engine
 
-    def get_cp_yield_trend(self, product_id: str, start_date: date, end_date: date) -> List[SemiCpHeader]:
+    def get_cp_yield_trend(self, product_id: str, start_date: date, end_date: date) -> List[dict]:
         query = text("""
             SELECT 
                 SUBSTRATE_ID, LOT_ID, WAFER_ID, PRODUCT_ID, PROCESS, 
@@ -61,11 +61,12 @@ class OracleDBService:
                     "end_date": datetime.combine(end_date, datetime.max.time())
                 })
                 
-                # SQLAlchemy returns Row objects which act like named tuples/dicts
+                # SQLAlchemy returns Row objects - convert to dict for analytics service
                 for row in result:
-                    # Convert row to dict to pass to Pydantic
-                    # row._mapping gives a dict-like view
-                    data.append(SemiCpHeader(**row._mapping))
+                    row_dict = dict(row._mapping)
+                    # Add empty bins dict (Oracle doesn't have bin breakdown in SEMI_CP_HEADER)
+                    row_dict['bins'] = {}
+                    data.append(row_dict)
                     
         except Exception as e:
             print(f"Oracle DB Error: {e}")
