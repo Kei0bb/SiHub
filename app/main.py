@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 from app.core.config import settings
 from app.api import yield_trend, wafer_map
 from app.views.pages import router as pages_router
@@ -28,6 +29,37 @@ app.include_router(wafer_map.router, prefix=f"{settings.API_V1_STR}/wafer", tags
 
 # HTML page routes
 app.include_router(pages_router)
+
+# Health check endpoint to verify database connection
+@app.get(f"{settings.API_V1_STR}/health")
+def health_check():
+    """Check database connection status"""
+    from app.api.deps import get_db_service
+    from app.services.mock_db import MockDBService
+    
+    db_service = get_db_service()
+    is_mock = isinstance(db_service, MockDBService)
+    
+    result = {
+        "status": "ok",
+        "database_mode": "mock" if is_mock else "oracle",
+        "use_mock_db_setting": settings.USE_MOCK_DB,
+    }
+    
+    # If using Oracle, test the connection
+    if not is_mock:
+        try:
+            from app.services.oracle_db import oracle_db_service
+            with oracle_db_service.engine.connect() as conn:
+                conn.execute(text("SELECT 1 FROM DUAL"))
+            result["oracle_connection"] = "success"
+            result["oracle_dsn"] = settings.ORACLE_DSN
+        except Exception as e:
+            result["oracle_connection"] = "failed"
+            result["oracle_error"] = str(e)
+    
+    return result
+
 
 from app.services.mock_db import mock_settings_service
 from pydantic import BaseModel
