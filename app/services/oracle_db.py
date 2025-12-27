@@ -4,15 +4,13 @@ from datetime import date, datetime, timedelta
 from app.core.config import settings
 from app.models.sonar_schema import SemiCpHeader
 from app.models.wafer_map import WaferMapResponse
+from app.services.settings_store import settings_store
 
 class OracleDBService:
     def __init__(self):
         # Lazy initialization - don't create engine until first use
         self._engine = None
         self._database_url = None
-        # In-memory cache for product active states and targets
-        self._product_active_states = {}  # product_id -> bool
-        self._yield_targets = {}  # "product_id-YYYY-MM" -> float
     
     @property
     def engine(self):
@@ -69,6 +67,7 @@ class OracleDBService:
         query = text(query_str)
         
         data = []
+        substrate_ids = []
         try:
             with self.engine.connect() as conn:
                 result = conn.execute(query, {
@@ -80,6 +79,46 @@ class OracleDBService:
                     row_dict = {k.upper(): v for k, v in row._mapping.items()}
                     row_dict['bins'] = {}
                     data.append(row_dict)
+                    substrate_ids.append(row_dict['SUBSTRATE_ID'])
+                
+                # Fetch bin data from SEMI_CP_BIN_SUM if we have data
+                if substrate_ids:
+                    bin_query = text("""
+                        SELECT SUBSTRATE_ID, BIN_CODE, BIN_NAME, BIN_COUNT
+                        FROM SEMI_CP_BIN_SUM
+                        WHERE SUBSTRATE_ID IN :substrate_ids
+                        AND PROCESS = 'CP'
+                    """)
+                    
+                    try:
+                        bin_result = conn.execute(bin_query, {
+                            "substrate_ids": tuple(substrate_ids)
+                        })
+                        
+                        # Build lookup: substrate_id -> {bin_key: count}
+                        bin_lookup = {}
+                        for bin_row in bin_result:
+                            sub_id = bin_row[0]
+                            bin_code = bin_row[1]
+                            bin_name = bin_row[2] or ""
+                            bin_count = bin_row[3] or 0
+                            
+                            if sub_id not in bin_lookup:
+                                bin_lookup[sub_id] = {}
+                            
+                            # Format: "BIN_CODE_BIN_NAME" like "1_Pass", "3_Open"
+                            bin_key = f"{bin_code}_{bin_name}" if bin_name else str(bin_code)
+                            bin_lookup[sub_id][bin_key] = bin_count
+                        
+                        # Merge bin data into results
+                        for row_dict in data:
+                            sub_id = row_dict['SUBSTRATE_ID']
+                            if sub_id in bin_lookup:
+                                row_dict['bins'] = bin_lookup[sub_id]
+                    except Exception as bin_e:
+                        print(f"Oracle DB Error fetching bin data: {bin_e}")
+                        # Continue without bin data
+                        
         except Exception as e:
             print(f"Oracle DB Error: {e}")
             return []
@@ -98,11 +137,14 @@ class OracleDBService:
         )
     
     def get_products(self) -> List[dict]:
-        """Get distinct products from Oracle DB"""
+        """Get distinct products from Oracle DB (only products with data in last 365 days)"""
+        # Optimized query: only get products with recent data
         query = text("""
-            SELECT DISTINCT PRODUCT_ID 
+            SELECT PRODUCT_ID
             FROM SEMI_CP_HEADER 
             WHERE PRODUCT_ID IS NOT NULL
+            AND REGIST_DATE >= SYSDATE - 365
+            GROUP BY PRODUCT_ID
             ORDER BY PRODUCT_ID
         """)
         
@@ -112,8 +154,8 @@ class OracleDBService:
                 result = conn.execute(query)
                 for row in result:
                     product_id = row[0]
-                    # Use cached active state, default to False
-                    is_active = self._product_active_states.get(product_id, False)
+                    # Use settings_store for persistent active state
+                    is_active = settings_store.get_product_active(product_id)
                     products.append({
                         "id": product_id,
                         "name": product_id,
@@ -126,21 +168,17 @@ class OracleDBService:
         return products
     
     def toggle_product(self, product_id: str, active: bool) -> dict:
-        """Toggle product active state (stored in memory cache)"""
-        self._product_active_states[product_id] = active
+        """Toggle product active state (persisted to JSON)"""
+        settings_store.set_product_active(product_id, active)
         return {"id": product_id, "name": product_id, "active": active}
     
     def get_target(self, product_id: str, month: str = None) -> float:
         """Get yield target for a product/month (returns None if not set)"""
-        if not month:
-            month = datetime.now().strftime("%Y-%m")
-        key = f"{product_id}-{month}"
-        return self._yield_targets.get(key)  # Return None if not set
+        return settings_store.get_target(product_id, month)
     
     def set_target(self, product_id: str, month: str, target: float):
         """Set yield target for a product/month"""
-        key = f"{product_id}-{month}"
-        self._yield_targets[key] = target
-        return self._yield_targets
+        settings_store.set_target(product_id, month, target)
+        return {"status": "success"}
 
 oracle_db_service = OracleDBService()
